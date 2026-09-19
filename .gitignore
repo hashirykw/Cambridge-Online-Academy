@@ -18,3 +18,7 @@ desktop.ini
 # Build leftovers
 node_modules/
 *.log
+
+# Python build leftovers
+__pycache__/
+*.pyc
