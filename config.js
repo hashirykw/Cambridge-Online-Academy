@@ -258,21 +258,43 @@
     if (!d) return;
     var contact = (d.SETTINGS && d.SETTINGS.contact) || {};
 
-    /* Every WhatsApp link on the page follows the number in the backend, so
-       changing it once changes it in the header, the footer, the ads, the
-       campus cards and the enquiry form together. */
-    if (contact.whatsapp) {
-      var wa = String(contact.whatsapp).replace(/[^0-9]/g, "");
+    /* The site carries two admissions lines on purpose: the WhatsApp button
+       opens a sheet with both, and the footer lists both. Rewriting every
+       wa.me and tel: href to one number turned that sheet into the same
+       number twice. Each baked line is matched and replaced on its own, so
+       the backend can move either without flattening the pair. Set
+       whatsapp_2 / phone_2 in settings.contact to move the second one. */
+    var BAKED_WA  = ["923463311647", "923360050557"],
+        BAKED_TEL = ["+923463311647", "+923360050557"],
+        AGENCY    = contact.agency_whatsapp || "923053687680";
+    var digits = function (v) { return String(v || "").replace(/[^0-9]/g, ""); };
+
+    var waTo = [digits(contact.whatsapp), digits(contact.whatsapp_2)];
+    if (waTo[0] || waTo[1]) {
       [].forEach.call(document.querySelectorAll('a[href*="wa.me/"]'), function (a) {
         /* The agency's own credit link is somebody else's number. Leave it. */
-        if (a.href.indexOf(contact.agency_whatsapp || "923053687680") !== -1) return;
-        a.href = a.href.replace(/wa\.me\/\d+/, "wa.me/" + wa);
+        if (a.href.indexOf(AGENCY) !== -1) return;
+        var m = /wa\.me\/(\d+)/.exec(a.href);
+        if (!m) return;
+        var k = BAKED_WA.indexOf(m[1]);
+        /* A number the page did not bake in is left alone rather than
+           guessed at. */
+        if (k === -1 || !waTo[k]) return;
+        a.href = a.href.replace(/wa\.me\/\d+/, "wa.me/" + waTo[k]);
       });
-      window.CO_WA = wa;
+      window.CO_WA = waTo[0] || digits(BAKED_WA[0]);
     }
-    if (contact.phone) {
+
+    var telTo = [digits(contact.phone), digits(contact.phone_2)];
+    if (telTo[0] || telTo[1]) {
       [].forEach.call(document.querySelectorAll('a[href^="tel:"]'), function (a) {
-        a.href = "tel:" + contact.phone.replace(/\s+/g, "");
+        var cur = a.getAttribute("href").slice(4).replace(/\s+/g, "");
+        var k = BAKED_TEL.indexOf(cur);
+        if (k === -1 || !telTo[k]) return;
+        a.href = "tel:+" + telTo[k];
+        /* The visible number follows the href when the link is just the
+           number written out, which is how the footer lists them. */
+        if (/^[+\d\s]+$/.test(a.textContent)) a.textContent = "+" + telTo[k];
       });
     }
 
@@ -323,7 +345,11 @@
   }
 
   function banner(text, colour) {
+    /* applyGlobals runs twice — once off the cache, once off the fetch — so
+       without this the notice was appended a second time under the first. */
+    if (document.getElementById("coBanner")) return;
     var el = document.createElement("div");
+    el.id = "coBanner";
     el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:80;padding:9px 16px;" +
       "text-align:center;font-family:Outfit,sans-serif;font-size:.84rem;color:#0C0304;" +
       "background:" + colour;
