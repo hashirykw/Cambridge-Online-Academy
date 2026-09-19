@@ -64,6 +64,7 @@
 .tp__sub{font-family:var(--display);font-size:clamp(1.05rem,2.05vw,1.45rem);line-height:1.3;
   color:var(--gold-text);margin:0 0 20px}
 .tp__bio{font-size:1.02rem;line-height:1.76;color:var(--text-2);max-width:56ch;margin:0}
+.tp__heroacts{display:flex;flex-wrap:wrap;gap:12px;margin-top:clamp(22px,2.6vw,30px)}
 
 /* Chips in the same idiom as the level pickers elsewhere on the site:
    mono, caps, a lit top edge. */
@@ -152,6 +153,13 @@
       <p class="tp__sub">Computer Science — O Level &amp; IGCSE · A Level</p>
       <ul class="tp__chips"><li>O Level &amp; IGCSE</li><li>A Level</li><li class="is-code">2210</li><li class="is-code">9618</li></ul>
       <p class="tp__bio">Computer Science with a systems emphasis — data representation, logic and networks explained from the hardware up.</p>
+      <!-- In the hero, under the bio. Someone arriving from a name search
+           has read three lines and decided; making them scroll past the
+           whole course table to find an action loses them. -->
+      <div class="tp__heroacts">
+        <a class="btn btn--liquid" href="/lecture-minhas-rupsi"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See free lecture</span></a>
+        <a class="btn btn--liquid btn--liquid-clear" href="/faculty"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See full faculty</span></a>
+      </div>
     </div>
   </div>
 

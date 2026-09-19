@@ -290,11 +290,16 @@ def page(t, siblings):
           + '</a>')
     sibs = "".join(sib(x) for x in siblings)
     demo = ""
+    hero_demo = ""
     d = t.get('demo')
     if d and d.get('title'):
         demo = (f'<a class="btn btn--liquid" href="/lecture-{t["id"]}">'
                 f'<svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg>'
                 f'<span class="btn__lq">Watch a free lesson — {esc(d["title"])}</span></a>')
+        # the hero has less room, so it carries the short label
+        hero_demo = (f'<a class="btn btn--liquid" href="/lecture-{t["id"]}">'
+                     f'<svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg>'
+                     f'<span class="btn__lq">See free lecture</span></a>')
 
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -362,6 +367,7 @@ def page(t, siblings):
 .tp__sub{{font-family:var(--display);font-size:clamp(1.05rem,2.05vw,1.45rem);line-height:1.3;
   color:var(--gold-text);margin:0 0 20px}}
 .tp__bio{{font-size:1.02rem;line-height:1.76;color:var(--text-2);max-width:56ch;margin:0}}
+.tp__heroacts{{display:flex;flex-wrap:wrap;gap:12px;margin-top:clamp(22px,2.6vw,30px)}}
 
 /* Chips in the same idiom as the level pickers elsewhere on the site:
    mono, caps, a lit top edge. */
@@ -414,6 +420,13 @@ def page(t, siblings):
       <p class="tp__sub">{esc(subj)} — {esc(levels_line(t))}</p>
       <ul class="tp__chips">{chips}</ul>
       <p class="tp__bio">{esc(t['bio'])}</p>
+      <!-- In the hero, under the bio. Someone arriving from a name search
+           has read three lines and decided; making them scroll past the
+           whole course table to find an action loses them. -->
+      <div class="tp__heroacts">
+        {hero_demo}
+        <a class="btn btn--liquid btn--liquid-clear" href="/faculty"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See full faculty</span></a>
+      </div>
     </div>
   </div>
 
