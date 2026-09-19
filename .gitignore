@@ -1,0 +1,20 @@
+# Never commit secrets. The publishable key in config.js is fine; these are not.
+.env
+.env.*
+*.env
+service-role*
+*service_role*
+supabase/.temp/
+.vercel
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/
+
+# Build leftovers
+node_modules/
+*.log

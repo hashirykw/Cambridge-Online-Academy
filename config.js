@@ -1,0 +1,348 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   CAMBRIDGE ONLINE — config.js
+   The one file that ties the website to its backend.
+
+   Loaded in <head>, before the page's own script, so the data is already in
+   place by the time the page builds itself.
+
+   How it stays fast: the last known good copy is kept in localStorage and
+   handed over synchronously, so the page never waits on the network to draw
+   itself. The fresh copy is fetched in the background; if anything has
+   changed since, the affected sections are redrawn in place. A first-ever
+   visitor gets the values baked into index.html, then the live ones a moment
+   later. Offline, the page still works.
+
+   No build step, no SDK — plain fetch against Supabase's REST endpoint.
+   ══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+
+  /* ── 1 · YOUR KEYS ────────────────────────────────────────────────────────
+     Supabase → Project Settings → API. The anon key is meant to be public:
+     row-level security is what protects the data, not the secrecy of this
+     string. Never put the service_role key here. */
+  var CONFIG = {
+    url:     "https://pjfrqsfegwyhbrdzxgdh.supabase.co",
+    anonKey: "sb_publishable_fCZ7v0zDdkJo4KEZ0maNuw_MrKIkOuF",
+
+    cacheMinutes: 10,      /* how long a cached copy is served before refetch */
+    debug: false           /* true prints what was loaded, to the console */
+  };
+
+  window.CO_CONFIG = CONFIG;
+
+  var REST = CONFIG.url.replace(/\/+$/, "") + "/rest/v1/";
+  var HEAD = { apikey: CONFIG.anonKey, Authorization: "Bearer " + CONFIG.anonKey };
+  var KEY  = "co-data-v1";
+
+  function log() { if (CONFIG.debug) console.log.apply(console, ["[CO]"].concat([].slice.call(arguments))); }
+
+  /* ── 2 · THE CACHE ─────────────────────────────────────────────────────── */
+  function readCache() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      var box = JSON.parse(raw);
+      if (!box || !box.at || !box.data) return null;
+      return box;
+    } catch (e) { return null; }
+  }
+  function writeCache(data) {
+    try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), data: data })); }
+    catch (e) { /* private mode, or full. Not worth failing over. */ }
+  }
+
+  var cached = readCache();
+  if (cached) {
+    window.CO_DATA = cached.data;
+    log("served from cache,", Math.round((Date.now() - cached.at) / 1000) + "s old");
+  }
+
+  /* ── 3 · SHAPING WHAT COMES BACK ───────────────────────────────────────────
+     The tables are normalised for the backend; the page wants the shapes it
+     already had. Everything is translated here so index.html keeps reading
+     the same properties it always did. */
+  function shape(raw) {
+    var out = {};
+
+    out.SUBJECTS = {};
+    (raw.subjects || []).forEach(function (s) {
+      out.SUBJECTS[s.name] = { key: s.key, accent: s.accent };
+    });
+
+    out.GROUPS = (raw.groups || []).map(function (g) { return g.name; });
+
+    out.FACULTY = (raw.faculty || []).map(function (t) {
+      var f = {
+        id: t.slug, name: t.name, subject: t.subject, group: t.group_name,
+        levels: t.levels || [], star: !!t.star, tag: t.tag || "",
+        bio: t.bio || "", distinctions: t.distinctions || [],
+        /* How many distinctions this teacher has produced. The site was
+           carrying this as a hand-written map in the page, which is why one
+           teacher showed a number and seventeen showed a dash. Add a
+           distinction_count column to the faculty table and each teacher
+           carries their own. Left null where the column is empty, which still
+           prints a dash — a dash for "not counted" is honest; a zero is not. */
+        distCount: (t.distinction_count === 0 || t.distinction_count)
+                     ? t.distinction_count : null,
+        photo: t.photo_url || "", specs: t.specs || [],
+        note: t.contact_note || ""
+      };
+      /* A teacher not offering a lesson gets no demo at all, rather than an
+         empty one — the card then stops advertising something that is not
+         there instead of opening a blank player. */
+      if (t.demo_enabled && t.demo_title) {
+        f.demo = { title: t.demo_title, mins: t.demo_mins || 14,
+                   code: t.demo_code || "", url: t.demo_url || "" };
+      }
+      return f;
+    });
+
+    out.CAMPUSES = (raw.campuses || []).map(function (c) {
+      return {
+        name: c.name, short: c.short || c.name, address: c.address,
+        phone: c.phone, whatsapp: c.whatsapp || "", email: c.email || "",
+        hours: c.hours, rating: c.rating, reviews: c.reviews,
+        lat: c.lat, lng: c.lng, flagship: !!c.flagship
+      };
+    });
+
+    out.SYLLABUS = {};
+    (raw.syllabus || []).forEach(function (r) {
+      /* [title, minutes, free, video]. A row is free only when the backend
+         says so; the introduction chapter on the teacher's row is free
+         already, so nothing here needs setting for the normal case. */
+      (out.SYLLABUS[r.subject_key] = out.SYLLABUS[r.subject_key] || [])
+        .push([r.title, r.mins, !!r.free, r.video_url || ""]);
+    });
+
+    /* A review may carry a clip. The shape kept only name, meta, stars and
+       body, so any video column on the row was thrown away here before the
+       page ever saw it — a review could never have had a video from the
+       backend, however it was entered. Both naming conventions are accepted
+       so the column can be called whichever of the two it ends up being. */
+    out.REVIEWS = (raw.reviews || []).map(function (r) {
+      var o = { name: r.name, meta: r.meta, stars: r.stars, text: r.body };
+      var v = r.video_url || r.videoUrl || r.video || r.clip_url || "";
+      var p = r.poster_url || r.posterUrl || r.poster || "";
+      if (v) {
+        /* A YouTube or Vimeo link is passed as an id; anything else is
+           treated as a file the site hosts itself. */
+        if (/youtu/.test(v))      o.youtube = v;
+        else if (/vimeo/.test(v)) o.vimeo = v;
+        else                      o.videoSrc = v;
+      }
+      if (p) o.poster = p;
+      if (r.distinction || r.is_distinction) o.dist = true;
+      return o;
+    });
+
+    out.FAQ = (raw.faqs || []).map(function (f) {
+      return { c: f.category, q: f.question, a: f.answer };
+    });
+
+    out.STOCK = (raw.ads || []).map(function (a) {
+      return { k: a.kicker, acc: a.accent, h: a.heading, p: a.body,
+               cta: a.cta_label, href: a.href, ic: a.icon,
+               ext: !!a.external, notice: !!a.notice };
+    });
+
+    out.STREAMS = (raw.streams || []).map(function (s) {
+      return { title: s.title, code: s.code, blurb: s.blurb,
+               subjects: s.subjects || [], chip: s.chip, icon: s.icon };
+    });
+
+    out.SETTINGS = {};
+    (raw.settings || []).forEach(function (r) { out.SETTINGS[r.key] = r.value || {}; });
+
+    out.PROMO = (raw.promos || [])[0] || null;
+
+    return out;
+  }
+
+  /* ── 4 · FETCHING ──────────────────────────────────────────────────────── */
+  function get(path) {
+    return fetch(REST + path, { headers: HEAD })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; });
+  }
+
+  function fetchAll() {
+    var now = new Date().toISOString();
+    return Promise.all([
+      get("subjects?select=*&active=eq.true&order=sort"),
+      get("groups?select=*&active=eq.true&order=sort"),
+      get("faculty?select=*&active=eq.true&order=sort,name"),
+      get("campuses?select=*&active=eq.true&order=sort"),
+      get("syllabus?select=*&active=eq.true&order=subject_key,sort"),
+      get("reviews?select=*&active=eq.true&order=sort"),
+      get("faqs?select=*&active=eq.true&order=sort"),
+      get("ads?select=*&active=eq.true&order=sort"),
+      get("streams?select=*&active=eq.true&order=sort"),
+      get("settings?select=*"),
+      get("promos?select=*&active=eq.true&order=sort" +
+          "&or=(starts_at.is.null,starts_at.lte." + now + ")" +
+          "&or=(ends_at.is.null,ends_at.gte." + now + ")")
+    ]).then(function (r) {
+      return shape({
+        subjects: r[0], groups: r[1], faculty: r[2], campuses: r[3],
+        syllabus: r[4], reviews: r[5], faqs: r[6], ads: r[7],
+        streams: r[8], settings: r[9], promos: r[10]
+      });
+    });
+  }
+
+  /* Only refetch when the cache has gone stale, so a visitor clicking through
+     five pages does not pull the whole catalogue five times. */
+  var fresh = cached && (Date.now() - cached.at) < CONFIG.cacheMinutes * 60000;
+
+  window.CO_READY = (fresh ? Promise.resolve(cached.data) : fetchAll().then(function (data) {
+    if (!data.FACULTY || !data.FACULTY.length) {
+      log("nothing came back; keeping what the page already has");
+      return window.CO_DATA || null;
+    }
+    var changed = JSON.stringify(data) !== JSON.stringify(window.CO_DATA || null);
+    window.CO_DATA = data;
+    writeCache(data);
+    log("loaded", data.FACULTY.length, "teachers", changed ? "(changed)" : "(same)");
+    if (changed && window.CO_REFRESH) {
+      /* The page is already drawn by now, so hand it back to itself. */
+      try { window.CO_REFRESH(data); } catch (e) { console.warn("[CO] refresh failed", e); }
+    }
+    return data;
+  }));
+
+  /* ── 5 · SENDING THE FORM ──────────────────────────────────────────────────
+     Returns a promise that never rejects. A failed insert must not stop the
+     visitor reaching WhatsApp — losing the row is recoverable, losing the
+     enquiry is not. */
+  window.CO_SUBMIT = function (payload) {
+    var body = {
+      kind:     payload.kind || "admission",
+      name:     payload.name || "",
+      phone:    payload.phone || "",
+      email:    payload.email || "",
+      level:    payload.level || "",
+      mode:     payload.mode || "",
+      campus:   payload.campus || "",
+      subjects: payload.subjects || [],
+      message:  payload.message || "",
+      teacher:  payload.teacher || "",
+      source:   "website",
+      meta: {
+        page: location.pathname,
+        ref: document.referrer || "",
+        ua: navigator.userAgent,
+        at: new Date().toISOString()
+      }
+    };
+    return fetch(REST + "submissions", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json", Prefer: "return=minimal" }, HEAD),
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      log("enquiry sent", r.status);
+      return r.ok;
+    }).catch(function (e) {
+      console.warn("[CO] enquiry not recorded", e);
+      return false;
+    });
+  };
+
+  /* ── 6 · THINGS THAT APPLY TO THE WHOLE PAGE ──────────────────────────────
+     Contact numbers and the discount ribbon are not owned by any one section,
+     so they are painted here rather than threaded through the page's own
+     render functions. */
+  function applyGlobals() {
+    var d = window.CO_DATA;
+    if (!d) return;
+    var contact = (d.SETTINGS && d.SETTINGS.contact) || {};
+
+    /* Every WhatsApp link on the page follows the number in the backend, so
+       changing it once changes it in the header, the footer, the ads, the
+       campus cards and the enquiry form together. */
+    if (contact.whatsapp) {
+      var wa = String(contact.whatsapp).replace(/[^0-9]/g, "");
+      [].forEach.call(document.querySelectorAll('a[href*="wa.me/"]'), function (a) {
+        /* The agency's own credit link is somebody else's number. Leave it. */
+        if (a.href.indexOf(contact.agency_whatsapp || "923053687680") !== -1) return;
+        a.href = a.href.replace(/wa\.me\/\d+/, "wa.me/" + wa);
+      });
+      window.CO_WA = wa;
+    }
+    if (contact.phone) {
+      [].forEach.call(document.querySelectorAll('a[href^="tel:"]'), function (a) {
+        a.href = "tel:" + contact.phone.replace(/\s+/g, "");
+      });
+    }
+
+    var site = (d.SETTINGS && d.SETTINGS.site) || {};
+    if (site.maintenance && site.maintenance_note) banner(site.maintenance_note, "#E06A6A");
+    if (d.PROMO) ribbon(d.PROMO);
+  }
+
+  var THEME = { gold:"#C9982F", emerald:"#5FD1A3", ruby:"#E06A6A", ice:"#7FC4E8",
+                violet:"#B79BF0", amber:"#F0B95F", mono:"#8E8E8E" };
+
+  function ribbon(p) {
+    if (p.placement && p.placement !== "ribbon") return;   /* other placements are the page's business */
+    if (document.getElementById("coPromo")) return;
+    try { if (sessionStorage.getItem("co-promo-" + p.id) === "shut") return; } catch (e) {}
+
+    var acc = THEME[p.theme] || THEME.gold;
+    var el = document.createElement("aside");
+    el.id = "coPromo";
+    el.setAttribute("role", "complementary");
+    el.style.cssText =
+      "position:fixed;left:0;right:0;bottom:0;z-index:70;display:flex;align-items:center;" +
+      "gap:14px;padding:11px 16px;font-family:Outfit,system-ui,sans-serif;font-size:.88rem;" +
+      "color:#F5EDE0;background:linear-gradient(100deg,#1A0708,#2A0608 60%);" +
+      "border-top:1px solid " + acc + "55;box-shadow:0 -14px 40px -20px rgba(0,0,0,.9);" +
+      "transform:translateY(110%);transition:transform .5s cubic-bezier(.16,1,.3,1)";
+    el.innerHTML =
+      '<span style="font-family:JetBrains Mono,monospace;font-size:.6rem;letter-spacing:.2em;' +
+      'text-transform:uppercase;color:' + acc + ';flex:0 0 auto">' + txt(p.kicker || "Offer") + "</span>" +
+      '<span style="flex:1;min-width:0"><b style="font-weight:600">' + txt(p.headline || "") + "</b>" +
+      (p.body ? '<span style="opacity:.72"> — ' + txt(p.body) + "</span>" : "") + "</span>" +
+      (p.code ? '<span style="flex:0 0 auto;padding:5px 11px;border:1px dashed ' + acc +
+        ";color:" + acc + ";border-radius:8px;font-family:JetBrains Mono,monospace;font-size:.76rem;" +
+        'letter-spacing:.12em;font-weight:600">' + txt(p.code) + "</span>" : "") +
+      '<a href="' + txt(p.cta_href || "#contact") + '" style="flex:0 0 auto;padding:8px 15px;' +
+      "border-radius:9px;background:" + acc + ';color:#2A0608;font-weight:600;text-decoration:none">' +
+      txt(p.cta_label || "Find out more") + "</a>" +
+      '<button type="button" aria-label="Dismiss this offer" style="flex:0 0 auto;width:28px;height:28px;' +
+      "border:0;background:none;color:#F5EDE0;opacity:.55;cursor:pointer;font-size:1.1rem;" +
+      'line-height:1">&times;</button>';
+    document.body.appendChild(el);
+    requestAnimationFrame(function () { el.style.transform = "translateY(0)"; });
+    el.querySelector("button").onclick = function () {
+      el.style.transform = "translateY(110%)";
+      try { sessionStorage.setItem("co-promo-" + p.id, "shut"); } catch (e) {}
+      setTimeout(function () { el.remove(); }, 520);
+    };
+  }
+
+  function banner(text, colour) {
+    var el = document.createElement("div");
+    el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:80;padding:9px 16px;" +
+      "text-align:center;font-family:Outfit,sans-serif;font-size:.84rem;color:#0C0304;" +
+      "background:" + colour;
+    el.textContent = text;
+    document.body.appendChild(el);
+  }
+
+  function txt(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      applyGlobals();
+      window.CO_READY.then(applyGlobals);
+    });
+  } else {
+    applyGlobals();
+    window.CO_READY.then(applyGlobals);
+  }
+})();
