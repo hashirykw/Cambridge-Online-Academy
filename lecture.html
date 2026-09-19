@@ -5116,11 +5116,14 @@ body.nav-open{overflow:hidden}
    sections run into each other instead of meeting on a hard line — a fade of
    the whole layer, which never touches the sharpness of the image itself. */
 :root{
-  --secbg:url("section-bg.jpg");   /* <- your file */
+  --secbg:url("brocade2-light.png");
   --secbg-size:auto;               /* leave as auto unless you must scale */
 }
-[data-theme="light"]{ --secbg-op:.30 }
-[data-theme="dark"] { --secbg-op:.55 }
+/* The brocade, same as every other page. This one was still on a placeholder
+   filename that was never supplied, so the section rendered bare and the
+   layer never switched with the theme. */
+[data-theme="light"]{ --secbg:url("brocade2-light.png"); --secbg-op:.30 }
+[data-theme="dark"] { --secbg:url("brocade2-dark.png");  --secbg-op:.55 }
 
 /* These sections are .sec.wrap, and .wrap caps them at 1280px — so without
    this the cloth stops ~320px short of each viewport edge on a wide screen.
