@@ -46,7 +46,7 @@
   --ink:#1B1A17;
   --text-1:#1B1A17;
   --text-2:rgba(27,26,23,.74);
-  --text-3:rgba(27,26,23,.5);
+  --text-3:rgba(27,26,23,.62);
   --line:rgba(27,26,23,.13);
   --line-2:rgba(27,26,23,.24);
   --gold-text:#7E5A11;
@@ -294,7 +294,7 @@
   --ink:#F5EDE0;
   --text-1:#F5EDE0;
   --text-2:rgba(245,237,224,.73);
-  --text-3:rgba(245,237,224,.46);
+  --text-3:rgba(245,237,224,.52);
   --line:rgba(245,237,224,.12);
   --line-2:rgba(245,237,224,.22);
   --gold-text:#E3B55D;
@@ -8158,7 +8158,10 @@ body:has(.ck) .hon__ledger{padding-bottom:clamp(0px,1vw,10px)}
   max-width:820px;margin:clamp(20px,2.4vw,30px) auto 0;padding-top:15px;
   border-top:1px solid var(--line);
   text-align:center;font-size:.745rem;line-height:1.6;color:var(--text-3)}
-.ach__note a{color:var(--gold-text);text-decoration:none;border-bottom:1px solid transparent;
+/* The link sat 1.19:1 against the sentence around it with the underline
+   only on hover, which is not a link anyone can find. */
+.ach__note a{color:var(--gold-text);text-decoration:underline;
+  text-underline-offset:2px;border-bottom:1px solid transparent;
   transition:border-color .3s var(--ease)}
 .ach__note a:hover{border-bottom-color:var(--gold)}
 

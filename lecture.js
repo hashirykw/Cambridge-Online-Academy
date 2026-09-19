@@ -1283,6 +1283,11 @@ function fmtTime(s){
       document.body.classList.toggle("nav-open", open);
     }
     function shut() { setNav(false); }
+    /* Escape closed both dialogs but not the mobile menu, which left the only
+       full-screen panel on the site without a keyboard way out. */
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && mob && mob.classList.contains("on")) shut();
+    });
 
     if (burger && mob) {
       burger.addEventListener("click", function () {
@@ -3337,6 +3342,24 @@ document.addEventListener("DOMContentLoaded", function () {
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
+
+    /* The campus list lives in this dialog and nowhere else on the page, so
+       "#campuses" in a URL had nothing to scroll to and arrived at the top of
+       the homepage instead. Links from the teacher pages, and any link a
+       visitor shares, now open the dialog on arrival. A campus may be named
+       after an equals sign — /#campuses=Bahadurabad — and that plate is the
+       one lit when the panel comes up. */
+    function fromHash() {
+      var m = /^#campuses(?:=(.*))?$/.exec(location.hash || "");
+      if (!m) return;
+      var short = m[1] ? decodeURIComponent(m[1]) : "";
+      /* After the dialog is up the hash has done its job; dropping it keeps a
+         reload from re-opening a panel the visitor has already closed. */
+      history.replaceState(null, "", location.pathname + location.search);
+      open(null, short);
+    }
+    if (location.hash) fromHash();
+    window.addEventListener("hashchange", fromHash);
   })();
 
   });
