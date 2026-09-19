@@ -342,6 +342,7 @@ def page(t, siblings):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="google-site-verification" content="KS9hiODBY_bsPlVU9fFx9LnzFYn3GuywjzlN3TotGx8">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{url}">
