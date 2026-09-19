@@ -8615,9 +8615,22 @@ body::after{
 .fopen h1{font-family:var(--display);font-size:clamp(2rem,4.4vw,3.3rem);line-height:1.04;
   letter-spacing:-.012em;margin:.3em 0 .45em;text-wrap:balance}
 .fopen__lede{color:var(--text-2);font-size:1.02rem;line-height:1.7;max-width:52ch;margin:0}
-.fopen__crest{position:relative;z-index:1;justify-self:center}
-.fopen__crest img{display:block;width:100%;max-width:300px;height:auto;
+.fopen__crest{position:relative;z-index:1;justify-self:center;
+  display:grid;place-items:center;width:min(100%,300px);aspect-ratio:1}
+.fopen__crest img{grid-area:1/1;display:block;width:100%;height:auto;
   filter:drop-shadow(0 18px 40px rgba(60,30,8,.28))}
+.fopen__crest img.crest--dk{display:none}
+[data-theme="dark"] .fopen__crest img.crest--lt{display:none}
+[data-theme="dark"] .fopen__crest img.crest--dk{display:block}
+/* Same two rings, same speeds and directions as the hero's — 26s one way,
+   38s the other — so the two read as one object at different scales. */
+.fopen__ring{grid-area:1/1;position:absolute;border-radius:50%;pointer-events:none;
+  border:1px solid rgba(201,152,47,.22);aspect-ratio:1}
+.fopen__ring--1{width:84%;border-top-color:rgba(201,152,47,.7);
+  animation:spin 26s linear infinite}
+.fopen__ring--2{width:98%;border-bottom-color:rgba(201,152,47,.5);
+  animation:spin 38s linear reverse infinite}
+@media (prefers-reduced-motion:reduce){.fopen__ring{animation:none}}
 
 /* Counted from the roster, not typed in — so they cannot go stale when a
    teacher is added. */
@@ -8756,10 +8769,22 @@ body::after{
         <div><dt>5</dt><dd>Campuses</dd></div>
       </dl>
     </div>
+    <!-- The crest the way the home page wears it: two counter-rotating rings.
+         Those are pure CSS on the index, so they come across whole — the
+         parallax field and the flip stage do not, since both need the main
+         script and neither reads at this size. The dark crest comes across
+         too; the pane was showing the light one in both themes. -->
     <div class="fopen__crest" aria-hidden="true">
-      <img src="crest-480.webp" srcset="crest-480.webp 480w, crest-960.webp 960w"
-           sizes="(max-width:900px) 200px, 300px" alt="" width="480" height="480"
-           loading="eager" decoding="async">
+      <span class="fopen__ring fopen__ring--1"></span>
+      <span class="fopen__ring fopen__ring--2"></span>
+      <img class="crest crest--lt" src="crest-480.webp"
+           srcset="crest-480.webp 480w, crest-960.webp 960w"
+           sizes="(max-width:900px) 200px, 300px" alt="" width="480" height="525"
+           loading="eager" decoding="async" data-fb="crest">
+      <img class="crest crest--dk" src="crest-480-dark.webp"
+           srcset="crest-480-dark.webp 480w, crest-960-dark.webp 960w"
+           sizes="(max-width:900px) 200px, 300px" alt="" width="480" height="525"
+           loading="eager" decoding="async" data-fb="crest">
     </div>
   </div>
 </section>
