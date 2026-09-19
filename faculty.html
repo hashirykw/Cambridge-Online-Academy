@@ -8592,6 +8592,50 @@ body::after{
 /* The permalink sits under the card's own content, so the dialog still opens
    on a normal click while the href stays crawlable and middle-clickable. */
 .fac__permalink{position:absolute;inset:0;z-index:1;opacity:0;font-size:0}
+
+/* ---- the faculty opening ----------------------------------------------
+   Clear glass, the same pane the rail cards are cut from, with the specular
+   rim every other panel on the site carries. The crest is the one piece of
+   weight on the right, so the headline is not floating against nothing. */
+.fopen{position:relative;isolation:isolate;overflow:hidden;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);
+  gap:clamp(20px,3vw,48px);align-items:center;
+  padding:clamp(28px,4vw,54px) clamp(22px,3.4vw,52px);
+  border-radius:var(--r);border:1px solid var(--line);
+  background:var(--clear-fill);backdrop-filter:var(--clear-fx);
+  -webkit-backdrop-filter:var(--clear-fx);box-shadow:var(--clear-shadow)}
+.fopen::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  border-radius:inherit;padding:1px;
+  background:linear-gradient(155deg,var(--clear-rim),var(--clear-rim-lo) 58%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude}
+.fopen::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  border-radius:inherit;background:var(--clear-tint)}
+.fopen__in{position:relative;z-index:1;min-width:0}
+.fopen h1{font-family:var(--display);font-size:clamp(2rem,4.4vw,3.3rem);line-height:1.04;
+  letter-spacing:-.012em;margin:.3em 0 .45em;text-wrap:balance}
+.fopen__lede{color:var(--text-2);font-size:1.02rem;line-height:1.7;max-width:52ch;margin:0}
+.fopen__crest{position:relative;z-index:1;justify-self:center}
+.fopen__crest img{display:block;width:100%;max-width:300px;height:auto;
+  filter:drop-shadow(0 18px 40px rgba(60,30,8,.28))}
+
+/* Counted from the roster, not typed in — so they cannot go stale when a
+   teacher is added. */
+.fopen__stats{display:flex;flex-wrap:wrap;gap:clamp(18px,3vw,44px);
+  margin:clamp(22px,2.6vw,34px) 0 0;padding:clamp(18px,2vw,24px) 0 0;
+  border-top:1px solid var(--line)}
+.fopen__stats > div{min-width:78px}
+.fopen__stats dt{font-family:var(--display);font-size:clamp(1.6rem,2.8vw,2.2rem);
+  line-height:1;color:var(--gold-text)}
+.fopen__stats dd{margin:6px 0 0;font-family:var(--mono);font-size:.58rem;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--text-3)}
+
+@media (max-width:860px){
+  .fopen{grid-template-columns:1fr;text-align:center}
+  .fopen__lede{margin-inline:auto}
+  .fopen__stats{justify-content:center;border-top-color:var(--line)}
+  .fopen__crest{order:-1;max-width:190px}
+}
 </style>
 <script>
 (function () {
@@ -8692,12 +8736,40 @@ body::after{
         </a>
   </div>
 </div>
+<!-- ═══════════════════════════════════════════ THE FACULTY OPENING ═══════
+     The page used to start cold: the headline sat on the bare page ground and
+     the first thing with any weight was the search bar. Every other page opens
+     on something built — the hero pane on the home page, the cine band on
+     about. This is that anchor, made from the same clear-glass vocabulary, and
+     the figures under it are counted from the roster rather than typed in. -->
+<section class="sec wrap" id="faculty-open">
+  <div class="fopen aclear">
+    <div class="fopen__in">
+      <p class="eyebrow">The faculty</p>
+      <h1>Teachers People Travel Across Karachi For</h1>
+      <p class="fopen__lede">Every teacher's introduction chapter is free to watch — the whole
+        lecture, no form, no deposit. Watch it end to end, then decide.</p>
+      <dl class="fopen__stats">
+        <div><dt>18</dt><dd>Teachers</dd></div>
+        <div><dt>13</dt><dd>Subjects</dd></div>
+        <div><dt>27</dt><dd>Syllabus codes</dd></div>
+        <div><dt>5</dt><dd>Campuses</dd></div>
+      </dl>
+    </div>
+    <div class="fopen__crest" aria-hidden="true">
+      <img src="crest-480.webp" srcset="crest-480.webp 480w, crest-960.webp 960w"
+           sizes="(max-width:900px) 200px, 300px" alt="" width="480" height="480"
+           loading="eager" decoding="async">
+    </div>
+  </div>
+</section>
+
 <section class="sec wrap sec--orn" id="faculty">
   <div class="head center">
-    <p class="eyebrow">The faculty</p>
+    <p class="eyebrow">Find your teacher</p>
     <div class="rule"></div>
-    <h1>Teachers People Travel Across Karachi For</h1>
-    <p class="lede">Every teacher's introduction chapter is free to watch — the whole lecture, no form, no deposit. Watch it end to end, then decide. The rest of the course is taught to enrolled students, and admissions will quote the fee for it.</p>
+    <h2>All Eighteen, Searchable</h2>
+    <p class="lede">Search by subject, teacher, level or syllabus code. Filter by faculty group or route, and sort by record.</p>
   </div>
   <!-- The finder. Absorbs what used to be the whole "What you can study"
        section: search a subject, a teacher, a level or a syllabus code and

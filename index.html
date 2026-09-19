@@ -16170,7 +16170,7 @@ var DISTINCTION_STUDENTS = [
       return;
     }
     pk.list.innerHTML = rows.map(function (t) {
-      return '<a class="pick__r" href="/lecture?t=' + encodeURIComponent(t.id) + '">' +
+      return '<a class="pick__r" href="/lecture-' + t.id + '">' +
         '<span class="pick__av">' +
           (t.photo_url || t.photo
             ? '<img src="' + esc(t.photo_url || t.photo) + '" alt="" loading="lazy" onerror="this.remove()">'
