@@ -267,7 +267,14 @@
       </svg>
     </span>
   </button>
-  </div>
+  <button class="snd" data-sound-btn aria-pressed="true" aria-label="Mute sound">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5 6.5 8.8H3.4v6.4h3.1L11 19Z" fill="currentColor" fill-opacity=".22"/>
+      <path d="M15.2 9.3a4 4 0 0 1 0 5.4M18 6.6a7.8 7.8 0 0 1 0 10.8" class="snd__w"/>
+      <path d="M4 20 20 4" class="snd__x" stroke-width="2.1"/>
+    </svg>
+  </button>
+</div>
 <!-- WhatsApp, beside Enrol. The academy answers on two numbers and the footer
      lists both, so this cannot be a single wa.me link without quietly picking
      one. It opens a sheet with both instead; each row is its own link. -->
@@ -311,7 +318,12 @@
     var t=e.target.closest ? e.target : null;
     if(!t) return;
     if(t.closest("[data-theme-btn]")){
-      applyTheme(D.getAttribute("data-theme")==="dark" ? "light" : "dark"); return;
+      applyTheme(D.getAttribute("data-theme")==="dark" ? "light" : "dark"); tap(); return;
+    }
+    if(t.closest("[data-sound-btn]")){
+      var now=!sndOn();
+      try{ localStorage.setItem(SND_KEY, now?"on":"off"); }catch(e){}
+      paintSnd(); if(now) tap(); return;
     }
     /* WhatsApp sheet. Two numbers, so the button opens a list rather than
        quietly picking one. */
@@ -334,6 +346,57 @@
     pop.setAttribute("aria-hidden","true"); pop.classList.remove("is-on");
     var b2=document.querySelector("[data-wa]"); if(b2) b2.setAttribute("aria-expanded","false");
   });
+
+  /* The dock is opacity:0 until body carries `ready` — that is how the site
+     stages its entrance. These pages never set it, which is why the toggle
+     was in the DOM but invisible. is-live then swaps the slow entrance curve
+     for the quick one, exactly as the main script does at 1.5s. */
+  requestAnimationFrame(function(){ document.body.classList.add("ready"); });
+  setTimeout(function(){
+    var d=document.querySelector(".dock"); if(d) d.classList.add("is-live");
+  }, 1500);
+
+  /* Sound. There is no audio on these pages beyond the tap, but the button
+     writes the same co-sound key the rest of the site reads, so muting here
+     holds when the visitor moves on. */
+  var SND_KEY="co-sound", actx=null;
+  function sndOn(){
+    try{ return localStorage.getItem(SND_KEY)!=="off"; }catch(e){ return true; }
+  }
+  function paintSnd(){
+    var on=sndOn();
+    [].forEach.call(document.querySelectorAll("[data-sound-btn]"),function(b){
+      b.setAttribute("aria-pressed",String(on));
+      b.setAttribute("aria-label",on?"Mute sound":"Unmute sound");
+    });
+  }
+  function tap(){
+    if(!sndOn()) return;
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      actx=actx||new AC();
+      var o=actx.createOscillator(), g=actx.createGain();
+      o.type="sine"; o.frequency.value=880;
+      g.gain.setValueAtTime(.0001,actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.05,actx.currentTime+.008);
+      g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.13);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime+.14);
+    }catch(e){}
+  }
+  paintSnd();
+
+  /* The dock sits bottom-left and the footer's crest sits there too, so on a
+     short page they collide. The site solves this with is-yield; here the
+     footer entering view is the trigger. */
+  if("IntersectionObserver" in window){
+    var foot=document.querySelector("footer"), dock=document.querySelector(".dock");
+    if(foot&&dock){
+      new IntersectionObserver(function(en){
+        dock.classList.toggle("is-yield", en[0].isIntersecting);
+      },{rootMargin:"0px 0px -40px 0px"}).observe(foot);
+    }
+  }
 
   var b=document.querySelector('.burger');
   if(b) b.addEventListener('click',function(){

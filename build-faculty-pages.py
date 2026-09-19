@@ -109,8 +109,8 @@ _a = _tail.find('<a class="btn btn--liquid fenrol')
 _b = _tail.find('<div class="hdlg"')
 FURNITURE = _tail[_a:_b].rstrip() if _a >= 0 and _b > _a else ""
 FURNITURE = FURNITURE.replace('href="#contact"', 'href="/#contact"')
-# no audio on these pages, so the sound key would be a dead control
-FURNITURE = re.sub(r'<button class="snd".*?</button>\s*', '', FURNITURE, flags=re.S)
+# The sound button stays. It shares the co-sound key with the rest of the
+# site, so muting here holds when the visitor reaches the index.
 
 def esc(s): return html.escape(s or "", quote=True)
 
@@ -160,8 +160,8 @@ _a = _tail.find('<a class="btn btn--liquid fenrol')
 _b = _tail.find('<div class="hdlg"')
 FURNITURE = _tail[_a:_b].rstrip() if _a >= 0 and _b > _a else ""
 FURNITURE = FURNITURE.replace('href="#contact"', 'href="/#contact"')
-# no audio on these pages, so the sound key would be a dead control
-FURNITURE = re.sub(r'<button class="snd".*?</button>\s*', '', FURNITURE, flags=re.S)
+# The sound button stays. It shares the co-sound key with the rest of the
+# site, so muting here holds when the visitor reaches the index.
 
 # Honorific drives the pronoun; the data has no gender field and guessing one
 # would be worse than reading the title the academy already uses.
@@ -479,7 +479,12 @@ def page(t, siblings):
     var t=e.target.closest ? e.target : null;
     if(!t) return;
     if(t.closest("[data-theme-btn]")){{
-      applyTheme(D.getAttribute("data-theme")==="dark" ? "light" : "dark"); return;
+      applyTheme(D.getAttribute("data-theme")==="dark" ? "light" : "dark"); tap(); return;
+    }}
+    if(t.closest("[data-sound-btn]")){{
+      var now=!sndOn();
+      try{{ localStorage.setItem(SND_KEY, now?"on":"off"); }}catch(e){{}}
+      paintSnd(); if(now) tap(); return;
     }}
     /* WhatsApp sheet. Two numbers, so the button opens a list rather than
        quietly picking one. */
@@ -502,6 +507,57 @@ def page(t, siblings):
     pop.setAttribute("aria-hidden","true"); pop.classList.remove("is-on");
     var b2=document.querySelector("[data-wa]"); if(b2) b2.setAttribute("aria-expanded","false");
   }});
+
+  /* The dock is opacity:0 until body carries `ready` — that is how the site
+     stages its entrance. These pages never set it, which is why the toggle
+     was in the DOM but invisible. is-live then swaps the slow entrance curve
+     for the quick one, exactly as the main script does at 1.5s. */
+  requestAnimationFrame(function(){{ document.body.classList.add("ready"); }});
+  setTimeout(function(){{
+    var d=document.querySelector(".dock"); if(d) d.classList.add("is-live");
+  }}, 1500);
+
+  /* Sound. There is no audio on these pages beyond the tap, but the button
+     writes the same co-sound key the rest of the site reads, so muting here
+     holds when the visitor moves on. */
+  var SND_KEY="co-sound", actx=null;
+  function sndOn(){{
+    try{{ return localStorage.getItem(SND_KEY)!=="off"; }}catch(e){{ return true; }}
+  }}
+  function paintSnd(){{
+    var on=sndOn();
+    [].forEach.call(document.querySelectorAll("[data-sound-btn]"),function(b){{
+      b.setAttribute("aria-pressed",String(on));
+      b.setAttribute("aria-label",on?"Mute sound":"Unmute sound");
+    }});
+  }}
+  function tap(){{
+    if(!sndOn()) return;
+    try{{
+      var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      actx=actx||new AC();
+      var o=actx.createOscillator(), g=actx.createGain();
+      o.type="sine"; o.frequency.value=880;
+      g.gain.setValueAtTime(.0001,actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.05,actx.currentTime+.008);
+      g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.13);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime+.14);
+    }}catch(e){{}}
+  }}
+  paintSnd();
+
+  /* The dock sits bottom-left and the footer's crest sits there too, so on a
+     short page they collide. The site solves this with is-yield; here the
+     footer entering view is the trigger. */
+  if("IntersectionObserver" in window){{
+    var foot=document.querySelector("footer"), dock=document.querySelector(".dock");
+    if(foot&&dock){{
+      new IntersectionObserver(function(en){{
+        dock.classList.toggle("is-yield", en[0].isIntersecting);
+      }},{{rootMargin:"0px 0px -40px 0px"}}).observe(foot);
+    }}
+  }}
 
   var b=document.querySelector('.burger');
   if(b) b.addEventListener('click',function(){{

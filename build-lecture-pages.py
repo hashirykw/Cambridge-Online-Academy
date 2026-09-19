@@ -50,11 +50,16 @@ written = 0
 for t in F:
     d = t.get("demo") or {}
     url = f"{SITE}/lecture-{t['id']}"
-    title = (f"{d.get('title')} — free lecture by {t['name']} | Cambridge Online"
-             if d.get("title") else f"Free lecture by {t['name']} | Cambridge Online")
-    desc = (f"Watch {t['name']}'s introduction chapter in {t['subject']} free, end to end — "
-            f"no form, no deposit"
-            + (f". {d['title']}, {d['mins']} minutes." if d.get("title") else ".")
+    # Two pages carry each teacher — the profile and this. If both lead on the
+    # teacher's name they compete for the same query and Google often ranks
+    # neither well. So the profile owns the name and this owns the lesson:
+    # the title leads with the topic and the level, not the person.
+    lvl = "O Level & A Level"
+    title = (f"{d.get('title')} — free {t['subject']} lesson | Cambridge Online"
+             if d.get("title") else f"Free {t['subject']} lesson | Cambridge Online")
+    desc = (f"A complete {t['subject']} lesson, free to watch end to end — no form, no deposit"
+            + (f". {d['title']}, {d['mins']} minutes, taught by {t['name']}." if d.get("title")
+               else f", taught by {t['name']}.")
             + " The notes and past-paper questions that come with the course are listed too.")
 
     img = (f"{SITE}/{t['id']}.webp"
