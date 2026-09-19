@@ -101,6 +101,17 @@ HEAD = HEAD.replace('href="#campuses"', 'href="/#campuses"')
 HEAD = re.sub(r'href="#([a-z]+)"', r'href="/#\1"', HEAD)
 FOOT = re.sub(r'(src|href)="(?!https?:|/|#|mailto:|tel:)', r'\1="/', FOOT)
 
+# The floating shell — Enrol, the light/dark dock, WhatsApp. It sits between
+# the footer and the dialogs on index.html; every page carries it and these
+# pages were the only ones that did not.
+_tail = PAGE[PAGE.find("</footer>") + 9:PAGE.find("</body>")]
+_a = _tail.find('<a class="btn btn--liquid fenrol')
+_b = _tail.find('<div class="hdlg"')
+FURNITURE = _tail[_a:_b].rstrip() if _a >= 0 and _b > _a else ""
+FURNITURE = FURNITURE.replace('href="#contact"', 'href="/#contact"')
+# no audio on these pages, so the sound key would be a dead control
+FURNITURE = re.sub(r'<button class="snd".*?</button>\s*', '', FURNITURE, flags=re.S)
+
 def esc(s): return html.escape(s or "", quote=True)
 
 def has_photo(t):
@@ -140,6 +151,17 @@ HEAD = HEAD.replace('src="mark-128.webp"', 'src="/mark-128.webp"')
 HEAD = HEAD.replace('href="#faculty" class="on"', 'href="/faculty" class="on"')
 HEAD = HEAD.replace('href="#campuses"', 'href="/#campuses"')
 FOOT = re.sub(r'(src|href)="(?!https?:|/|#|mailto:|tel:)', r'\1="/', FOOT)
+
+# The floating shell — Enrol, the light/dark dock, WhatsApp. It sits between
+# the footer and the dialogs on index.html; every page carries it and these
+# pages were the only ones that did not.
+_tail = PAGE[PAGE.find("</footer>") + 9:PAGE.find("</body>")]
+_a = _tail.find('<a class="btn btn--liquid fenrol')
+_b = _tail.find('<div class="hdlg"')
+FURNITURE = _tail[_a:_b].rstrip() if _a >= 0 and _b > _a else ""
+FURNITURE = FURNITURE.replace('href="#contact"', 'href="/#contact"')
+# no audio on these pages, so the sound key would be a dead control
+FURNITURE = re.sub(r'<button class="snd".*?</button>\s*', '', FURNITURE, flags=re.S)
 
 # Honorific drives the pronoun; the data has no gender field and guessing one
 # would be worse than reading the title the academy already uses.
@@ -270,9 +292,9 @@ def page(t, siblings):
     demo = ""
     d = t.get('demo')
     if d and d.get('title'):
-        demo = (f'<a class="btn btn--liquid" href="/lecture?t={t["id"]}">'
+        demo = (f'<a class="btn btn--liquid" href="/lecture-{t["id"]}">'
                 f'<svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg>'
-                f'<span class="btn__lq">Watch the free lecture — {esc(d["title"])}</span></a>')
+                f'<span class="btn__lq">Watch a free lesson — {esc(d["title"])}</span></a>')
 
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -421,16 +443,68 @@ def page(t, siblings):
     <div class="tp__acts">
       {demo}
       <a class="btn btn--liquid" href="/#contact"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">Enrol now</span></a>
+      <!-- A teacher page is a landing page: most arrivals come from a name
+           search and have never seen the roster. Without this the only way
+           onward is the nav. -->
+      <a class="btn btn--liquid btn--liquid-clear" href="/faculty"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See all 18 teachers at Cambridge Online</span></a>
     </div>
   </div>
 </main>
 {FOOT}
+{FURNITURE}
 <script>
-/* Just the burger. The teacher pages do not need the rest of the site's script. */
+/* The shell's controls. The main site drives these from a 285 KB bundle these
+   pages have no reason to load, so this is the same behaviour written small:
+   the same localStorage key, the same theme-color swap, the same storage
+   listener, so a theme chosen here holds when the visitor moves to the index
+   and a change in another tab follows here. */
 (function(){{
+  var D=document.documentElement;
+  function applyTheme(mode){{
+    D.setAttribute("data-theme",mode);
+    var m=document.querySelector('meta[name="theme-color"]');
+    if(m) m.setAttribute("content", mode==="dark" ? "#0C0304" : "#F6F1E6");
+    [].forEach.call(document.querySelectorAll("[data-theme-btn]"),function(b){{
+      b.setAttribute("aria-label", mode==="dark" ? "Switch to light mode" : "Switch to dark mode");
+    }});
+    try{{ localStorage.setItem("co-theme",mode); }}catch(e){{}}
+  }}
+  var saved=null; try{{ saved=localStorage.getItem("co-theme"); }}catch(e){{}}
+  applyTheme(saved==="dark" ? "dark" : "light");
+  window.addEventListener("storage",function(e){{
+    if(e.key==="co-theme"&&(e.newValue==="light"||e.newValue==="dark")) applyTheme(e.newValue);
+  }});
+
+  document.addEventListener("click",function(e){{
+    var t=e.target.closest ? e.target : null;
+    if(!t) return;
+    if(t.closest("[data-theme-btn]")){{
+      applyTheme(D.getAttribute("data-theme")==="dark" ? "light" : "dark"); return;
+    }}
+    /* WhatsApp sheet. Two numbers, so the button opens a list rather than
+       quietly picking one. */
+    var wa=t.closest("[data-wa]"), pop=document.getElementById("wapop");
+    if(wa&&pop){{
+      var open=wa.getAttribute("aria-expanded")==="true";
+      wa.setAttribute("aria-expanded",String(!open));
+      pop.setAttribute("aria-hidden",String(open));
+      pop.classList.toggle("is-on",!open);
+      return;
+    }}
+    if(pop&&!t.closest("#wapop")){{
+      pop.setAttribute("aria-hidden","true"); pop.classList.remove("is-on");
+      var b2=document.querySelector("[data-wa]"); if(b2) b2.setAttribute("aria-expanded","false");
+    }}
+  }});
+  document.addEventListener("keydown",function(e){{
+    if(e.key!=="Escape") return;
+    var pop=document.getElementById("wapop"); if(!pop) return;
+    pop.setAttribute("aria-hidden","true"); pop.classList.remove("is-on");
+    var b2=document.querySelector("[data-wa]"); if(b2) b2.setAttribute("aria-expanded","false");
+  }});
+
   var b=document.querySelector('.burger');
-  if(!b) return;
-  b.addEventListener('click',function(){{
+  if(b) b.addEventListener('click',function(){{
     var on=b.getAttribute('aria-expanded')==='true';
     b.setAttribute('aria-expanded',String(!on));
     document.body.classList.toggle('mob-on',!on);

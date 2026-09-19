@@ -204,6 +204,17 @@ var GROUPS = (window.CO_DATA && window.CO_DATA.GROUPS && window.CO_DATA.GROUPS.l
 /* Level labels are written for humans ("O / A Levels"), so route membership
    is resolved here rather than by pattern-matching the display string at
    each call site. A combined label counts for both routes. */
+/* The plate's label. routesOf() below answers which routes a teacher covers;
+   this turns that into the one phrase the card shows, matching the wording
+   the faculty grid uses so the two never read differently. */
+function routeOf(t){
+  var r = routesOf(t);
+  if (r.o && r.a) return "O & A Level";
+  if (r.a) return "A Level";
+  if (r.o) return "O Level & IGCSE";
+  return (t.levels && t.levels[0]) || "";
+}
+
 function routesOf(t){
   var s = t.levels.join(" · ");
   var both = /O\s*[\/&]\s*A/i.test(s);
@@ -940,6 +951,10 @@ function fmtTime(s){
           '<span class="fac__code"><em>' + esc(code) +
             '<b class="fac__node"></b></em><i></i><i></i></span>' +
         '</span>' +
+        /* Subject first, the way the faculty grid reads. What a student is
+           choosing is the subject; the teacher's name is the answer to that,
+           so it sits under the medallion rather than above it. */
+        '<span class="fac__subj">' + esc(t.subject) + '</span>' +
         '<span class="fac__b">' +
           '<span class="fac__med">' + esc(initials(t.name)) + '</span>' +
           '<span class="fac__name">' + esc(t.name) + '</span>' +
@@ -950,7 +965,7 @@ function fmtTime(s){
           '<span class="fac__more">Open details' + ARROW + '</span>' +
         '</span>' +
       '</span>' +
-      '<span class="fac__plate"><i></i><span>' + esc(t.subject) + '</span></span>' +
+      '<span class="fac__plate"><i></i><span>' + esc(routeOf(t)) + '</span></span>' +
       '</button>';
   }
 
@@ -3075,7 +3090,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function build(x) {
       var d = x.demo || {};
-      var href = "lecture.html?t=" + encodeURIComponent(x.id);
+      var href = "/lecture-" + x.id;
       var kin = FACULTY.filter(function (k) { return k.subject === x.subject; });
       var shown = kin.slice(0, 4);
       var rail = shown.map(function (k) {
@@ -3174,7 +3189,7 @@ document.addEventListener("DOMContentLoaded", function () {
       e.preventDefault();
       shut();
       co.sound.click();
-      location.href = "lecture.html?t=" + encodeURIComponent(x.id);
+      location.href = "/lecture-" + x.id;
     });
 
     document.addEventListener("keydown", function (e) {

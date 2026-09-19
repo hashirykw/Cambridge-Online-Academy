@@ -13215,7 +13215,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function build(t) {
       var d = t.demo || {}, esc = co.esc;
-      var href = "lecture.html?t=" + encodeURIComponent(t.id);
+      var href = "/lecture-" + t.id;
 
       /* The rail holds the teacher's colleagues in the same subject. Capped at
          four plus a counter — a rail long enough to scroll competes with the
@@ -13365,7 +13365,7 @@ document.addEventListener("DOMContentLoaded", function () {
       e.preventDefault();
       shut();
       co.sound.click();
-      location.href = "lecture.html?t=" + encodeURIComponent(t.id);
+      location.href = "/lecture-" + t.id;
     });
 
     document.addEventListener("keydown", function (e) {

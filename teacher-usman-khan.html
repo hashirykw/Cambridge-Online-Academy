@@ -179,8 +179,12 @@
     <p>Classes run live and are recorded, so students in Pakistan, the Gulf and further
        afield can follow the same course at their own hours.</p>
     <div class="tp__acts">
-      <a class="btn btn--liquid" href="/lecture-usman-khan"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">Watch the free lecture — Introduction to Chemistry</span></a>
+      <a class="btn btn--liquid" href="/lecture-usman-khan"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">Watch a free lesson — Introduction to Chemistry</span></a>
       <a class="btn btn--liquid" href="/#contact"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">Enrol now</span></a>
+      <!-- A teacher page is a landing page: most arrivals come from a name
+           search and have never seen the roster. Without this the only way
+           onward is the nav. -->
+      <a class="btn btn--liquid btn--liquid-clear" href="/faculty"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See all 18 teachers at Cambridge Online</span></a>
     </div>
   </div>
 </main>
@@ -249,12 +253,90 @@
     <span>Learn · Prepare · Succeed</span>
   </div>
 </footer>
+<a class="btn btn--liquid fenrol" href="/#contact" aria-label="Enrol now"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 8 12 13l9.5-5L12 3Z"/><path d="M6.5 10.2V15c0 1.6 2.5 3 5.5 3s5.5-1.4 5.5-3v-4.8"/></svg>Enrol now</span></a>
+<div class="dock" role="group" aria-label="Display and sound controls">
+  <button class="tgl" data-theme-btn aria-label="Switch to dark mode">
+    <span class="tgl__t"><span class="t-l">Light<br>Mode</span><span class="t-d">Dark<br>Mode</span></span>
+    <span class="tgl__k">
+      <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4.2"/>
+        <path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+      </svg>
+      <svg class="ic-moon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z"/>
+      </svg>
+    </span>
+  </button>
+  </div>
+<!-- WhatsApp, beside Enrol. The academy answers on two numbers and the footer
+     lists both, so this cannot be a single wa.me link without quietly picking
+     one. It opens a sheet with both instead; each row is its own link. -->
+<button class="fwa" type="button" data-wa aria-haspopup="true" aria-expanded="false"
+        aria-controls="wapop" aria-label="Message us on WhatsApp">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.15h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.41a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23Zm4.52-6.16c-.25-.13-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.8-.79.97-.14.16-.29.19-.54.06-.25-.12-1.05-.386-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.12-.15.16-.25.25-.42.08-.16.04-.31-.02-.44-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43h-.48c-.16 0-.42.06-.64.31-.22.25-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.69 2.58 4.1 3.62.57.25 1.02.39 1.37.5.58.18 1.1.16 1.52.1.46-.07 1.42-.58 1.63-1.15.2-.56.2-1.05.14-1.15-.06-.1-.22-.16-.47-.28Z"/>
+  </svg>
+</button>
+<div class="wapop" id="wapop" role="menu" aria-hidden="true">
+  <p class="wapop__k">Message us on WhatsApp</p>
+  <a role="menuitem" href="https://wa.me/923463311647" target="_blank" rel="noopener">
+    <b>+92 346 3311647</b><span>Admissions</span></a>
+  <a role="menuitem" href="https://wa.me/923360050557" target="_blank" rel="noopener">
+    <b>+92 336 0050557</b><span>Results &amp; classes</span></a>
+</div>
 <script>
-/* Just the burger. The teacher pages do not need the rest of the site's script. */
+/* The shell's controls. The main site drives these from a 285 KB bundle these
+   pages have no reason to load, so this is the same behaviour written small:
+   the same localStorage key, the same theme-color swap, the same storage
+   listener, so a theme chosen here holds when the visitor moves to the index
+   and a change in another tab follows here. */
 (function(){
+  var D=document.documentElement;
+  function applyTheme(mode){
+    D.setAttribute("data-theme",mode);
+    var m=document.querySelector('meta[name="theme-color"]');
+    if(m) m.setAttribute("content", mode==="dark" ? "#0C0304" : "#F6F1E6");
+    [].forEach.call(document.querySelectorAll("[data-theme-btn]"),function(b){
+      b.setAttribute("aria-label", mode==="dark" ? "Switch to light mode" : "Switch to dark mode");
+    });
+    try{ localStorage.setItem("co-theme",mode); }catch(e){}
+  }
+  var saved=null; try{ saved=localStorage.getItem("co-theme"); }catch(e){}
+  applyTheme(saved==="dark" ? "dark" : "light");
+  window.addEventListener("storage",function(e){
+    if(e.key==="co-theme"&&(e.newValue==="light"||e.newValue==="dark")) applyTheme(e.newValue);
+  });
+
+  document.addEventListener("click",function(e){
+    var t=e.target.closest ? e.target : null;
+    if(!t) return;
+    if(t.closest("[data-theme-btn]")){
+      applyTheme(D.getAttribute("data-theme")==="dark" ? "light" : "dark"); return;
+    }
+    /* WhatsApp sheet. Two numbers, so the button opens a list rather than
+       quietly picking one. */
+    var wa=t.closest("[data-wa]"), pop=document.getElementById("wapop");
+    if(wa&&pop){
+      var open=wa.getAttribute("aria-expanded")==="true";
+      wa.setAttribute("aria-expanded",String(!open));
+      pop.setAttribute("aria-hidden",String(open));
+      pop.classList.toggle("is-on",!open);
+      return;
+    }
+    if(pop&&!t.closest("#wapop")){
+      pop.setAttribute("aria-hidden","true"); pop.classList.remove("is-on");
+      var b2=document.querySelector("[data-wa]"); if(b2) b2.setAttribute("aria-expanded","false");
+    }
+  });
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Escape") return;
+    var pop=document.getElementById("wapop"); if(!pop) return;
+    pop.setAttribute("aria-hidden","true"); pop.classList.remove("is-on");
+    var b2=document.querySelector("[data-wa]"); if(b2) b2.setAttribute("aria-expanded","false");
+  });
+
   var b=document.querySelector('.burger');
-  if(!b) return;
-  b.addEventListener('click',function(){
+  if(b) b.addEventListener('click',function(){
     var on=b.getAttribute('aria-expanded')==='true';
     b.setAttribute('aria-expanded',String(!on));
     document.body.classList.toggle('mob-on',!on);

@@ -6969,3 +6969,25 @@ body::after{
 
 /* ---------------------------------------------------------------- footer */
 
+
+/* The subject label. Present on the faculty grid, absent here because this
+   page's card never showed one; it does now. Copied verbatim from
+   site.css so the two cards cannot drift apart. */
+.fac__subj{
+  font-family:var(--display);font-weight:500;line-height:1.06;
+  font-size:clamp(1.28rem,1.05rem + .8vw,1.56rem);
+  letter-spacing:-.012em;
+  /* The raw accent is tuned for hairlines and dots, not for 1.5rem of type.
+     Biology's green and Sociology's pink sit at roughly 2:1 against the cream
+     face — fine for a 6px node, unreadable as a headline — so under the light
+     theme the accent is mixed toward the page ink far enough to clear AA while
+     still identifying the subject by colour. On the dark face the accent is
+     already the bright value and only needs lifting. */
+  color:color-mix(in srgb,var(--acc) 58%,#3E1D0A);
+  margin-top:11px;text-wrap:balance;
+  /* Two lines are reserved whether the subject needs them or not. Without it
+     "Physics" and "Sociology & Psychology" push their photographs to different
+     heights and the row of cards stops sharing a horizon. */
+  min-height:2.06em;
+  filter:drop-shadow(0 0 16px color-mix(in srgb,var(--acc) 22%,transparent));
+}

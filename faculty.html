@@ -8743,7 +8743,7 @@ body::after{
      about. This is that anchor, made from the same clear-glass vocabulary, and
      the figures under it are counted from the roster rather than typed in. -->
 <section class="sec wrap" id="faculty-open">
-  <div class="fopen aclear">
+  <div class="fopen">
     <div class="fopen__in">
       <p class="eyebrow">The faculty</p>
       <h1>Teachers People Travel Across Karachi For</h1>
@@ -13223,7 +13223,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function build(t) {
       var d = t.demo || {}, esc = co.esc;
-      var href = "lecture.html?t=" + encodeURIComponent(t.id);
+      var href = "/lecture-" + t.id;
 
       /* The rail holds the teacher's colleagues in the same subject. Capped at
          four plus a counter — a rail long enough to scroll competes with the
@@ -13373,7 +13373,7 @@ document.addEventListener("DOMContentLoaded", function () {
       e.preventDefault();
       shut();
       co.sound.click();
-      location.href = "lecture.html?t=" + encodeURIComponent(t.id);
+      location.href = "/lecture-" + t.id;
     });
 
     document.addEventListener("keydown", function (e) {

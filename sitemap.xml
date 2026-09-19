@@ -3,40 +3,23 @@
   <url><loc>https://cambridgeonline.tech/</loc><priority>1.0</priority></url>
   <url><loc>https://cambridgeonline.tech/about</loc><priority>0.8</priority></url>
   <url><loc>https://cambridgeonline.tech/faculty</loc><priority>0.9</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-afham-saya</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-ammar-samana</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-anna-malik</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-azeem-iqbal</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-farhan-khan</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-jameel-ansari</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-javed-khan-afridi</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-junaid-akhtar</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-mehboob-khan</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-minhas-rupsi</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-murtaza-zai</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-rohail-ahmed</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-sohail-ahmed</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-sohail-aziz</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-umar-sheikh</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-umar-soni</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/teacher-usman-khan</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/lecture</loc><priority>0.6</priority></url>
   <url><loc>https://cambridgeonline.tech/teacher-waqas-khan</loc><priority>0.8</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-afham-saya</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-ammar-samana</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-anna-malik</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-azeem-iqbal</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-farhan-khan</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-jameel-ansari</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-javed-khan-afridi</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-junaid-akhtar</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-mehboob-khan</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-minhas-rupsi</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-murtaza-zai</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-rohail-ahmed</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-sohail-ahmed</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-sohail-aziz</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-umar-sheikh</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-umar-soni</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-usman-khan</loc><priority>0.7</priority></url>
-  <url><loc>https://cambridgeonline.tech/lecture-waqas-khan</loc><priority>0.7</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-mehboob-khan</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-usman-khan</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-sohail-aziz</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-farhan-khan</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-umar-soni</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-javed-khan-afridi</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-afham-saya</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-minhas-rupsi</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-rohail-ahmed</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-ammar-samana</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-sohail-ahmed</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-murtaza-zai</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-azeem-iqbal</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-anna-malik</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-junaid-akhtar</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-jameel-ansari</loc><priority>0.8</priority></url>
+  <url><loc>https://cambridgeonline.tech/teacher-umar-sheikh</loc><priority>0.8</priority></url>
 </urlset>
