@@ -48,7 +48,9 @@ for blk in re.split(r'\n  \{ id:', _body)[1:]:
     rec = dict(id=g("id"), name=g("name"), subject=g("subject"), group=g("group"),
                tag=g("tag"), bio=g("bio"), levels=arr("levels"),
                distinctions=arr("distinctions"), star=bool(re.search(r'star:\s*true', blk)),
-               nophoto=bool(re.search(r'nophoto:\s*true', blk)))
+               nophoto=bool(re.search(r'nophoto:\s*true', blk)),
+               social=[u for u in re.findall(r'"(https://[^"]+)"',
+                        (re.search(r'social:\s*\[([^\]]*)\]', blk) or [None, ""])[1])])
     dm = re.search(r'demo:\{([^}]*)\}', blk)
     if dm:
         rec["demo"] = {"title": (re.search(r'title:"([^"]*)"', dm.group(1)) or [None, ""])[1],
@@ -196,11 +198,16 @@ def page(t, siblings):
             if shot_img else portrait_svg(acc, label=not t.get("nophoto")))
 
 
-    title = f"{n} — {subj} Teacher | Cambridge Online (SWK Solutions)"
-    desc = (f"{n} teaches {subj} at Cambridge Online, the online academy of SWK Solutions. "
-            f"{levels_line(t)}"
-            + (f" · {codestr}." if codes else ".")
-            + f" {t['tag']}. Live classes and recorded lectures.")[:300]
+    # Two queries matter for a teacher page: the name, and "best <subject>
+    # teacher in Karachi". The name owns the title's front; the subject and
+    # the city follow it, so one page can answer both without reading as a
+    # keyword list.
+    title = f"{n} — {subj} Teacher in Karachi | Cambridge Online"
+    lead = (t['distinctions'][0] + ". ") if t['distinctions'] else ""
+    desc = (f"{n} teaches {subj} ({levels_line(t)}"
+            + (f", {codestr}" if codes else "") + ") at Cambridge Online, "
+            f"the online academy of SWK Solutions, Karachi. {lead}"
+            f"Watch a full lesson free before you enrol.").replace("{lead}", lead)[:300]
 
     person = {
         "@context": "https://schema.org", "@type": "Person",
@@ -218,6 +225,11 @@ def page(t, siblings):
     }
     if t['distinctions']:
         person["award"] = t['distinctions']
+    # sameAs is how a search engine ties this page to the accounts already
+    # carrying the teacher's name — the strongest entity signal available
+    # short of a Wikipedia entry.
+    if t.get('social'):
+        person["sameAs"] = t['social']
 
     course = {
         "@context": "https://schema.org", "@type": "Course",
@@ -233,6 +245,28 @@ def page(t, siblings):
             "@type": "CourseInstance", "courseMode": "online",
             "instructor": {"@id": f"{url}#person"}}
     }
+
+    # The literal questions a student types. An FAQPage is also what the
+    # answer engines lift verbatim, so the phrasing is the query, not a
+    # paraphrase of it.
+    q1 = f"Who is the best {subj} teacher in Karachi?"
+    a1 = (f"{n} teaches {subj} at Cambridge Online, the online academy of SWK "
+          f"Solutions in Karachi"
+          + (f". {t['distinctions'][0]}" if t['distinctions'] else "")
+          + f". {t['tag']}. Every Cambridge Online teacher gives one full lesson away "
+            f"free, so you can watch {his} teaching before deciding.")
+    q2 = f"Where can I find an online {subj} tutor for {levels_line(t)}?"
+    a2 = (f"Cambridge Online teaches {subj}"
+          + (f" for Cambridge syllabus {codestr}" if codes else "")
+          + f" live online, with every session recorded. Students in Pakistan, "
+            f"the Gulf and further afield follow the same course as the Karachi "
+            f"campuses. {sn} is the {subj} teacher on this route.")
+    faq = {"@context": "https://schema.org", "@type": "FAQPage",
+           "mainEntity": [
+             {"@type": "Question", "name": q1,
+              "acceptedAnswer": {"@type": "Answer", "text": a1}},
+             {"@type": "Question", "name": q2,
+              "acceptedAnswer": {"@type": "Answer", "text": a2}}]}
 
     crumbs = {
         "@context": "https://schema.org", "@type": "BreadcrumbList",
@@ -330,6 +364,7 @@ def page(t, siblings):
 <script type="application/ld+json">{json.dumps(person, ensure_ascii=False)}</script>
 <script type="application/ld+json">{json.dumps(course, ensure_ascii=False)}</script>
 <script type="application/ld+json">{json.dumps(crumbs, ensure_ascii=False)}</script>
+<script type="application/ld+json">{json.dumps(faq, ensure_ascii=False)}</script>
 <style>
 /* The page borrows the site's own furniture — .wrap, .sec, .head, .eyebrow,
    .cpane — so headings, rhythm and panes inherit from site.css rather than
@@ -386,10 +421,14 @@ def page(t, siblings):
   color:var(--gold-text)}}
 .tp__spec dd{{margin:0;color:var(--text-1);font-size:1rem;line-height:1.5}}
 
-/* The sibling row uses .fac and .facgrid straight from site.css. The only
-   thing needed here is that a .fac rendered as a link doesn't inherit the
-   underline and colour a bare <a> would carry. */
-.facgrid .fac{{text-decoration:none;color:inherit}}
+/* The sibling row uses .fac and .facgrid straight from site.css. Two
+   corrections on top: a .fac rendered as a link should not inherit the
+   underline a bare <a> carries, and the last row must not stretch.
+   .row > * is flex:1, so a row holding three cards grew each to the 376px
+   cap while a full row of four sat at 305px — the cards ended 44px taller
+   and every name in that row sat lower than the names above it. Holding
+   the basis stops the grow, so the grid reads as columns. */
+.facgrid .fac{{text-decoration:none;color:inherit;flex:0 1 var(--cw,300px)}}
 
 /* ---- admissions pane. Gold rim marks the offer, as it does elsewhere. -- */
 .tp__cta{{margin:clamp(30px,4vw,56px) 0 clamp(60px,7vw,100px);
