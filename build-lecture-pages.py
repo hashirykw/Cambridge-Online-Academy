@@ -25,9 +25,6 @@ for f in ("index.html", "_lecture.tpl"):
 
 PAGE = open(os.path.join(OUT, "index.html"), encoding="utf-8", errors="surrogateescape").read()
 TPL  = open(os.path.join(OUT, "_lecture.tpl"), encoding="utf-8", errors="surrogateescape").read()
-# The template's own note to whoever opens it — not something to ship on
-# eighteen pages.
-TPL  = re.sub(r'^<!-- _lecture\.tpl.*?-->\n', '', TPL, flags=re.S)
 
 def esc(x): return html.escape(x or "", quote=True)
 def _un(x):
@@ -65,11 +62,8 @@ for t in F:
                else f", taught by {t['name']}.")
             + " The notes and past-paper questions that come with the course are listed too.")
 
-    # WhatsApp and Facebook are unreliable with WebP and WhatsApp is the
-    # channel these links travel on, so the share image is the JPEG card from
-    # build-og-cards.py — never the portrait itself.
-    img = (f"{SITE}/og-{t['id']}.jpg"
-           if os.path.exists(os.path.join(OUT, f"og-{t['id']}.jpg")) else f"{SITE}/og-card.png")
+    img = (f"{SITE}/{t['id']}.webp"
+           if os.path.exists(os.path.join(OUT, t["id"] + ".webp")) else f"{SITE}/og-card.png")
 
     p = TPL
     # the id the page reads instead of the query string
@@ -96,51 +90,9 @@ for t in F:
                    f'<meta {"property" if k.startswith("og") else "name"}="{k}" content="{img}">',
                    p, count=1)
 
-    # The alt text and the type travel with the image, or every page keeps
-    # describing the homepage card.
-    alt = esc(f"{t['name']} \u2014 {t['subject']} at Cambridge Online")
-    for k in ("og:image:alt", "twitter:image:alt"):
-        p = re.sub(rf'<meta (property|name)="{k}" content="[^"]*">',
-                   f'<meta {"property" if k.startswith("og") else "name"}="{k}" content="{alt}">',
-                   p, count=1)
-    p = re.sub(r'<meta property="og:image:type" content="[^"]*">',
-               '<meta property="og:image:type" content="%s">'
-               % ("image/jpeg" if img.endswith(".jpg") else "image/png"), p, count=1)
-
-    # The breadcrumb the page shows, and the lesson itself. No contentUrl is
-    # claimed: the file lives in the backend, and a VideoObject without one is
-    # worse than no VideoObject at all.
-    crumbs = {"@context": "https://schema.org", "@type": "BreadcrumbList",
-        "itemListElement": [
-            {"@type": "ListItem", "position": 1, "name": "Home", "item": SITE + "/"},
-            {"@type": "ListItem", "position": 2, "name": "Faculty", "item": SITE + "/faculty"},
-            {"@type": "ListItem", "position": 3, "name": t["name"],
-             "item": f"{SITE}/teacher-{t['id']}"},
-            {"@type": "ListItem", "position": 4,
-             "name": d.get("title") or f"Introduction to {t['subject']}", "item": url}]}
-    lesson = {"@context": "https://schema.org", "@type": "LearningResource",
-        "@id": url + "#lesson",
-        "name": d.get("title") or f"Introduction to {t['subject']}",
-        "url": url, "learningResourceType": "Lecture", "isAccessibleForFree": True,
-        "educationalLevel": "O Level, IGCSE and A Level", "inLanguage": ["en", "ur"],
-        "teaches": t["subject"],
-        "author": {"@id": f"{SITE}/teacher-{t['id']}#person", "@type": "Person",
-                   "name": t["name"]},
-        "isPartOf": {"@id": f"{SITE}/teacher-{t['id']}#course"},
-        "provider": {"@id": SITE + "/#org", "@type": "EducationalOrganization",
-                     "name": "Cambridge Online"}}
-    if d.get("mins"):
-        lesson["timeRequired"] = f"PT{d['mins']}M"
-    graph = "".join('<script type="application/ld+json">'
-                    + json.dumps(o, ensure_ascii=False, separators=(",", ":"))
-                    + "</script>\n" for o in (crumbs, lesson))
-    p = p.replace('<link rel="stylesheet" href="/lecture.css">',
-                  graph + '<link rel="stylesheet" href="/lecture.css">', 1)
-
     open(os.path.join(OUT, f"lecture-{t['id']}.html"), "w",
          encoding="utf-8", errors="surrogateescape").write(p)
     written += 1
 
 print(f"wrote {written} lecture pages")
-print("Now run build-faculty-pages.py — it writes the sitemap, and it picks the")
-print("lecture pages up only once they exist on disk.")
+print("Remember to point the CTAs at /lecture-<id> and add them to sitemap.xml")

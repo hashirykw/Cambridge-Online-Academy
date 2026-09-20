@@ -18,7 +18,7 @@ TO ADD A TEACHER
      everyone else in the same group, so re-upload all the teacher pages, not
      just the new one.
 """
-import json, os, re, html, sys, urllib.parse, datetime
+import json, os, re, html, sys
 
 SITE = "https://cambridgeonline.tech"
 OUT  = os.path.dirname(os.path.abspath(__file__))
@@ -101,17 +101,6 @@ HEAD = HEAD.replace('href="#campuses"', 'href="/#campuses"')
 HEAD = re.sub(r'href="#([a-z]+)"', r'href="/#\1"', HEAD)
 FOOT = re.sub(r'(src|href)="(?!https?:|/|#|mailto:|tel:)', r'\1="/', FOOT)
 
-# The mobile menu, lifted the same way. These pages shipped a burger with no
-# panel behind it and a body class the stylesheet does not define, so the only
-# navigation on a phone was the footer.
-_ms = PAGE.find('<div class="scrim"')
-_me = PAGE.find('</div>', PAGE.find('<div class="mob__ic">')) 
-_me = PAGE.find('</div>', _me + 6)
-MOB = PAGE[_ms:_me + 6] if _ms >= 0 else ""
-MOB = MOB.replace('href="#campuses"', 'href="/#campuses"')
-MOB = re.sub(r'href="#([a-z]+)"', r'href="/#\1"', MOB)
-MOB = MOB.replace('href="/faculty"', 'href="/faculty" class="on"', 1)
-
 # The floating shell — Enrol, the light/dark dock, WhatsApp. It sits between
 # the footer and the dialogs on index.html; every page carries it and these
 # pages were the only ones that did not.
@@ -155,32 +144,13 @@ def portrait_svg(acc, label=True):
       '<circle cx="200" cy="98" r="35"/><path d="M141 202c0-33 26-52 59-52s59 19 59 52"/></g>'
       + cap + '</svg>')
 
-# Lifted from index.html, the same as above — the two lines that used to sit
-# here read _header.html and _footer.html from an absolute path outside the
-# repo, so the script exited on any machine but the one it was written on.
-HEAD = re.search(r'(<header.*?</header>)', PAGE, re.S).group(1)
-FOOT = re.search(r'(<footer.*?</footer>)', PAGE, re.S).group(1)
+HEAD = open('/home/claude/_header.html', encoding='utf-8').read()
+FOOT = open('/home/claude/_footer.html', encoding='utf-8').read()
 # the teacher pages live one level down, so root-relative the asset paths
 HEAD = HEAD.replace('src="mark-128.webp"', 'src="/mark-128.webp"')
+HEAD = HEAD.replace('href="#faculty" class="on"', 'href="/faculty" class="on"')
 HEAD = HEAD.replace('href="#campuses"', 'href="/#campuses"')
-# Every remaining in-page anchor belongs to the homepage, not to this one.
-HEAD = re.sub(r'href="#([a-z]+)"', r'href="/#\1"', HEAD)
-# The homepage marks Home as the current page. On a profile that is Faculty.
-HEAD = HEAD.replace(' class="on"', '')
-HEAD = HEAD.replace('<a href="/faculty">Faculty</a>',
-                    '<a href="/faculty" class="on">Faculty</a>')
 FOOT = re.sub(r'(src|href)="(?!https?:|/|#|mailto:|tel:)', r'\1="/', FOOT)
-# The campus dialog and the faculty roster are not on this page, so a bare
-# "#campuses" or "#faculty" in the footer went nowhere. They point home, and
-# a named campus carries its own name so the right plate is lit on arrival.
-FOOT = FOOT.replace('href="#faculty"', 'href="/faculty"')
-FOOT = re.sub(r'href="#campuses"( data-camps data-camp="([^"]+)")',
-              lambda m: 'href="/#campuses=%s"%s' % (urllib.parse.quote(m.group(2)), m.group(1)),
-              FOOT)
-FOOT = FOOT.replace('href="#campuses"', 'href="/#campuses"')
-# Every in-page anchor in the footer belongs to the homepage, same as the
-# header's — "#streams" on a profile page points at nothing.
-FOOT = re.sub(r'href="#([a-z]+)"', r'href="/#\1"', FOOT)
 
 # The floating shell — Enrol, the light/dark dock, WhatsApp. It sits between
 # the footer and the dialogs on index.html; every page carries it and these
@@ -220,12 +190,7 @@ def page(t, siblings):
     acc = accent(subj)
     shot_img = has_photo(t)
     # a share card beats a broken image when there is no portrait
-    # WhatsApp and Facebook are unreliable with WebP, and WhatsApp is the
-    # channel these links actually travel on, so the share image is a JPEG
-    # card built by build-og-cards.py — never the portrait itself.
-    og_img = (f"{SITE}/og-{t['id']}.jpg"
-              if os.path.exists(os.path.join(OUT, f"og-{t['id']}.jpg"))
-              else f"{SITE}/og-card.png")
+    og_img = f"{SITE}/{t['id']}.webp" if shot_img else f"{SITE}/og-card.png"
     shot = (f'<img src="/{t["id"]}.webp" width="1000" height="625" fetchpriority="high"'
             f' alt="{esc(n)}, {esc(subj)} teacher at Cambridge Online">'
             if shot_img else portrait_svg(acc, label=not t.get("nophoto")))
@@ -293,8 +258,7 @@ def page(t, siblings):
         dist = bool(x.get('star'))
         xcode = ((x.get('demo') or {}).get('code') or (x['levels'] or [""])[0])
         xcode = re.sub(r'\s+', ' ', xcode)
-        shot = (f'<img src="/{x["id"]}.webp" width="1000" height="625"'
-                f' alt="" loading="lazy" decoding="async"'
+        shot = (f'<img src="/{x["id"]}.webp" alt="" loading="lazy" decoding="async"'
                 f' data-portrait="{a}">' if has_photo(x)
                 else portrait_svg(a, label=not x.get("nophoto")))
         star = '<span class="fac__star">\u2605 Distinction</span>' if dist else ''
@@ -342,7 +306,6 @@ def page(t, siblings):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="google-site-verification" content="KS9hiODBY_bsPlVU9fFx9LnzFYn3GuywjzlN3TotGx8">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
 <link rel="canonical" href="{url}">
@@ -352,17 +315,11 @@ def page(t, siblings):
 <meta property="og:description" content="{esc(desc)}">
 <meta property="og:url" content="{url}">
 <meta property="og:image" content="{og_img}">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:type" content="{'image/jpeg' if og_img.endswith('.jpg') else 'image/png'}">
-<meta property="og:image:alt" content="{esc(n)} — {esc(subj)} at Cambridge Online">
-<meta property="og:locale" content="en_PK">
 <meta property="og:site_name" content="Cambridge Online">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{esc(title)}">
 <meta name="twitter:description" content="{esc(desc)}">
 <meta name="twitter:image" content="{og_img}">
-<meta name="twitter:image:alt" content="{esc(n)} — {esc(subj)} at Cambridge Online">
 <link rel="icon" href="/mark-128.webp">
 <link rel="apple-touch-icon" href="/mark-128.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -452,7 +409,6 @@ def page(t, siblings):
 </head>
 <body>
 {HEAD}
-{MOB}
 <main class="tp">
   <p class="tp__crumb"><a href="/">Home</a> · <a href="/faculty">Faculty</a> · {esc(n)}</p>
 
@@ -503,7 +459,7 @@ def page(t, siblings):
       <!-- A teacher page is a landing page: most arrivals come from a name
            search and have never seen the roster. Without this the only way
            onward is the nav. -->
-      <a class="btn btn--liquid btn--liquid-clear" href="/faculty"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See all 18 teachers at Cambridge Online</span></a>
+      <a class="btn btn--liquid btn--liquid-clear" href="/faculty"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See the full faculty at Cambridge Online</span></a>
     </div>
   </div>
 </main>
@@ -616,108 +572,12 @@ def page(t, siblings):
     }}
   }}
 
-  /* One place owns the open state so the scrim, the body lock and the burger
-     cannot drift out of sync with the panel — the same setNav the main
-     bundle uses, and the same nav-open class the stylesheet actually has. */
-  var burger=document.querySelector('.burger'),
-      mob=document.querySelector('.mob'),
-      scrim=document.getElementById('scrim');
-  function setNav(open){{
-    if(!mob) return;
-    mob.classList.toggle('on',open);
-    burger.classList.toggle('on',open);
-    burger.setAttribute('aria-expanded',open?'true':'false');
-    if(scrim) scrim.classList.toggle('on',open);
-    document.body.classList.toggle('nav-open',open);
-  }}
-  function shutNav(){{ setNav(false); }}
-  if(burger&&mob){{
-    burger.addEventListener('click',function(){{
-      setNav(!mob.classList.contains('on')); tap();
-    }});
-    if(scrim) scrim.addEventListener('click',shutNav);
-    mob.addEventListener('click',function(e){{ if(e.target.closest('a')) shutNav(); }});
-    document.addEventListener('click',function(e){{
-      if(!mob.contains(e.target)&&!burger.contains(e.target)) shutNav();
-    }});
-    document.addEventListener('keydown',function(e){{ if(e.key==='Escape') shutNav(); }});
-  }}
-}})();
-
-/* Every silver outline takes the exact corner radius of the element it
-   traces, measured from that element, so it sits on the edge at the corners
-   too instead of cutting across them. Re-fitted when cards are added or the
-   window changes size. */
-(function () {{
-  var touch = !!(window.matchMedia && window.matchMedia("(hover:none)").matches);
-  var io = touch && "IntersectionObserver" in window ? new IntersectionObserver(function (en) {{
-    en.forEach(function (e) {{
-      if (!e.isIntersecting) return;
-      var h = e.target;
-      /* a small stagger so a row of buttons draws one after another */
-      setTimeout(function () {{ h.classList.add("is-traced"); }}, (h.__tIdx || 0) * 90);
-      io.unobserve(h);
-    }});
-  }}, {{ threshold: 0.35 }}) : null;
-  function px(v, size) {{
-    v = String(v || "0").split(" ")[0];
-    return v.indexOf("%") > -1 ? parseFloat(v) / 100 * size : parseFloat(v) || 0;
-  }}
-  function fit(svg) {{
-    var host = svg.parentElement, rect = svg.firstElementChild;
-    if (!host || !rect) return;
-    var b = host.getBoundingClientRect();
-    if (!b.width) return;
-    var cs = getComputedStyle(host);
-    /* an outline has to be measured against its own box, not a parent's */
-    if (cs.position === "static") host.style.position = "relative";
-    /* A box with its own border: the outline runs just inside it on the
-       inner curve, and the border steps aside while the outline is drawn,
-       so the edge reads as one line instead of a gold one and a silver one
-       side by side. */
-    var bw = parseFloat(cs.borderTopWidth) || 0;
-    if (bw && cs.borderTopStyle !== "none") host.classList.add("has-edge");
-    var iw = b.width - 2 * bw, ih = b.height - 2 * bw;
-    var r = px(cs.borderTopLeftRadius, b.width) - bw;
-    r = Math.max(0, Math.min(r, ih / 2, iw / 2) - 0.6);
-    rect.style.rx = r + "px"; rect.style.ry = r + "px";
-    /* The outline's own size set in pixels too. Some phone browsers keep an
-       SVG rectangle at the size it had on first paint when it is given in
-       percent, so a card that grows as its text and image load was left with
-       an outline that stopped halfway down it. */
-    var sw = host.clientWidth, sh = host.clientHeight;
-    svg.style.width = sw + "px"; svg.style.height = sh + "px";
-    svg.setAttribute("viewBox", "0 0 " + sw + " " + sh);
-    rect.setAttribute("x", 0.6); rect.setAttribute("y", 0.6);
-    rect.setAttribute("width", Math.max(0, sw - 1.2)); rect.setAttribute("height", Math.max(0, sh - 1.2));
-    rect.style.width = Math.max(0, sw - 1.2) + "px"; rect.style.height = Math.max(0, sh - 1.2) + "px";
-    if (ro && !host.__tRO) {{ host.__tRO = 1; ro.observe(host); }}
-  }}
-  /* Refit an outline whenever its box changes size, for whatever reason. */
-  var ro = "ResizeObserver" in window ? new ResizeObserver(function (en) {{
-    en.forEach(function (e) {{
-      var svg = e.target.querySelector(":scope > .btn__trace");
-      if (svg) fit(svg);
-    }});
-  }}) : null;
-  function all() {{
-    var n = 0;
-    [].forEach.call(document.querySelectorAll(".btn__trace"), function (svg) {{
-      fit(svg);
-      var h = svg.parentElement;
-      if (io && h && !h.__tWatch) {{ h.__tWatch = 1; h.__tIdx = (n++) % 4; io.observe(h); }}
-    }});
-  }}
-  var t = null;
-  function soon() {{ clearTimeout(t); t = setTimeout(all, 120); }}
-  all();
-  window.addEventListener("load", all);
-  window.addEventListener("resize", soon);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(all);
-  if ("MutationObserver" in window)
-    new MutationObserver(function (m) {{
-      for (var i = 0; i < m.length; i++) if (m[i].addedNodes.length) {{ soon(); break; }}
-    }}).observe(document.body, {{ childList: true, subtree: true }});
+  var b=document.querySelector('.burger');
+  if(b) b.addEventListener('click',function(){{
+    var on=b.getAttribute('aria-expanded')==='true';
+    b.setAttribute('aria-expanded',String(!on));
+    document.body.classList.toggle('mob-on',!on);
+  }});
 }})();
 </script>
 </body>
@@ -734,31 +594,24 @@ for t in F:
 print("wrote", len(F), "teacher pages")
 
 # ---- sitemap --------------------------------------------------------------
-# /lecture is the template the eighteen lesson pages are built from and with
-# no id baked in it renders the first starred teacher's lesson word for word,
-# so it is carried noindex and kept out of the index. The eighteen real ones
-# go in — they were missing entirely, which is what the old reminder at the
-# bottom of build-lecture-pages.py was about.
+# Both page families, with the hints the hand-written version carried. An
+# earlier version of this script listed only the teacher pages, so each run
+# quietly deleted the eighteen lecture URLs from the sitemap.
+import datetime
 _today = datetime.date.today().isoformat()
-urls = [(SITE + "/", "1.0", "weekly"), (SITE + "/faculty", "0.9", "weekly"),
-        (SITE + "/about", "0.8", "monthly")]
-urls += [(f"{SITE}/teacher-{t['id']}", "0.8", "monthly") for t in F]
-urls += [(f"{SITE}/lecture-{t['id']}", "0.7", "monthly") for t in F
-         if os.path.exists(os.path.join(OUT, f"lecture-{t['id']}.html"))]
+rows = [(SITE + "/", "weekly", "1.0"),
+        (SITE + "/faculty", "weekly", "0.9"),
+        (SITE + "/about", "monthly", "0.8")]
+rows += [(f"{SITE}/teacher-{t['id']}", "monthly", "0.8") for t in F]
+rows += [(f"{SITE}/lecture-{t['id']}", "monthly", "0.7") for t in F]
 open(f"{OUT}/sitemap.xml", "w").write(
     '<?xml version="1.0" encoding="UTF-8"?>\n'
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     + "".join(f'  <url><loc>{u}</loc><lastmod>{_today}</lastmod>'
-              f'<changefreq>{c}</changefreq><priority>{p}</priority></url>\n'
-              for u, p, c in urls)
+              f'<changefreq>{c}</changefreq><priority>{p_}</priority></url>\n'
+              for u, c, p_ in rows)
     + "</urlset>\n")
-print(f"sitemap.xml    {len(urls)} urls")
-
-# Nothing is disallowed on purpose: a page blocked here can never be read, so
-# a noindex tag on it would never be seen.
-open(f"{OUT}/robots.txt", "w").write(
-    "User-agent: *\nAllow: /\n\nSitemap: %s/sitemap.xml\n" % SITE)
-print("robots.txt     written")
+print(f"sitemap.xml    {len(rows)} urls")
 
 # ---- make the faculty cards themselves the links ---------------------------
 # The "Our teachers" list has gone: the faculty page is the roster, and a
