@@ -9328,6 +9328,492 @@ body::after{
   </div>
 </section>
 
+<!-- ═══════════════════════ EAGLE'S CAST ═══════════════════════ -->
+<!-- Sits between the streams and the record. A visitor who has just
+     chosen a route meets the students on that route before meeting the
+     grades. The five review clips stay where they are, further down. -->
+<!-- ═══════════════════════ THE FILM WALL ═══════════════════════
+     A dealt deck of clips. Same mechanic as the Markaz wall of fame: the
+     frames overlap, each sits at its own tilt and drop, and pointing at one
+     lifts it out while the rest slide away from it. Below 760px the rake is
+     dropped entirely and the deck becomes a snap rail — a raked stack cannot
+     be read on a phone, and a fanned deck with no hover is just a mess.
+
+     Everything here is namespaced .fw__ and reads only :root tokens, so it
+     carries both themes and collides with nothing already on the page.
+     ══════════════════════════════════════════════════════════════ -->
+<style id="fw-css">
+/* Hallmark · pre-emit critique: P4 H5 E5 S4 R5 V4
+ * component scope · inherits the Cambridge token system · no new palette */
+
+#filmwall{
+  --fw-pad:clamp(20px,5vw,40px);
+  --fw-w:256px; --fw-h:330px; --fw-lap:74px;
+  padding:clamp(56px,7vw,92px) 0 clamp(60px,8vw,100px);
+}
+.fw__wrap{max-width:var(--wrap);margin-inline:auto;padding-inline:var(--fw-pad)}
+
+/* ---- heading ---- */
+.fw__head{text-align:center;max-width:64ch;margin:0 auto clamp(26px,3.4vw,40px)}
+.fw__eyebrow{margin:0;font-family:var(--sans);font-size:11px;font-weight:600;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--gold-text)}
+.fw__rule{width:74px;height:1px;margin:14px auto 18px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.fw__h{margin:0;font-family:var(--display);font-style:normal;font-weight:600;
+  font-size:clamp(29px,4.6vw,52px);line-height:1.08;letter-spacing:-.015em;
+  color:var(--text-1);overflow-wrap:anywhere;min-width:0}
+.fw__lede{margin:16px auto 0;max-width:58ch;font-family:var(--sans);
+  font-size:clamp(14px,1.5vw,16px);line-height:1.65;color:var(--text-2)}
+
+/* ---- the filter rail ---- */
+.fw__rail{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:0 0 clamp(16px,2.6vw,28px)}
+.fw__chips{display:flex;gap:8px;flex-wrap:wrap;min-width:0}
+.fw__chip{font-family:var(--sans);font-size:13px;font-weight:500;line-height:1;
+  padding:9px 16px;border-radius:999px;border:1px solid var(--line-2);
+  background:transparent;color:var(--text-2);cursor:pointer;white-space:nowrap;
+  transition:color .3s var(--ease),border-color .3s var(--ease),background .3s var(--ease)}
+.fw__chip b{font-weight:500;color:var(--text-3);margin-left:7px}
+.fw__chip:hover{border-color:var(--gold);color:var(--text-1)}
+.fw__chip[aria-selected="true"]{background:var(--gold);border-color:var(--gold);color:#1B0A02}
+.fw__chip[aria-selected="true"] b{color:rgba(27,10,2,.62)}
+.fw__count{margin-left:auto;font-family:var(--sans);font-size:13px;color:var(--text-3)}
+.fw__chips[hidden] + .fw__count{margin-left:0}
+.fw__count b{color:var(--text-1);font-weight:600}
+
+/* ---- the deck ---- */
+.fw__deckwrap{position:relative;padding:22px 0 14px}
+.fw__deck{display:flex;justify-content:center;align-items:flex-start}
+.fw__card{
+  --rot:0deg; --dy:0px; --shift:0px; --sc:1; --z:1;
+  position:relative;z-index:var(--z);flex:none;width:var(--fw-w);height:var(--fw-h);padding:0;
+  border-radius:var(--r-sm);overflow:hidden;cursor:pointer;
+  background:var(--bg-2);border:1px solid var(--line-2);box-shadow:var(--shadow-lg);
+  transform-origin:50% 100%;
+  transform:translateX(var(--shift)) translateY(var(--dy)) rotate(var(--rot)) scale(var(--sc));
+  transition:transform .55s var(--out),box-shadow .4s var(--ease),border-color .4s var(--ease);
+  will-change:transform}
+.fw__card + .fw__card{margin-left:calc(var(--fw-lap) * -1)}
+.fw__card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:saturate(.6) brightness(.8);transition:filter .5s var(--ease)}
+.fw__scrim{position:absolute;inset:0;background:var(--veil);opacity:.88;
+  transition:opacity .45s var(--ease)}
+/* the caption plate. Separate from the scrim on purpose: --veil is a mood
+   wash and fades out by 58%, which is not enough to carry white type over a
+   frame shot against a bright hall. This one only has to make words readable. */
+.fw__shade{position:absolute;left:0;right:0;bottom:0;height:56%;z-index:1;
+  background:linear-gradient(to top,rgba(6,1,2,.92) 0%,rgba(6,1,2,.72) 34%,transparent 100%);
+  opacity:0;transition:opacity .4s var(--ease)}
+/* the gold hairline inside the frame — the thing that makes it read as mounted
+   rather than as a cropped photo with a border */
+.fw__card::after{content:'';position:absolute;inset:7px;pointer-events:none;
+  border:1px solid rgba(201,152,47,.26);border-radius:calc(var(--r-sm) - 5px);
+  opacity:.5;transition:opacity .45s var(--ease)}
+
+.fw__play{position:absolute;left:calc((100% - var(--fw-lap)) / 2);top:44%;z-index:2;
+  width:54px;height:54px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(10,2,3,.48);border:1px solid rgba(201,152,47,.75);
+  transform:translate(-50%,-50%) scale(.88);opacity:.8;
+  transition:transform .45s var(--spring),opacity .35s var(--ease),background .35s var(--ease)}
+.fw__play svg{width:15px;height:15px;margin-left:3px;fill:var(--gold-on-dark)}
+
+.fw__cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:16px 15px;text-align:left;
+  opacity:0;transform:translateY(8px);
+  transition:opacity .35s var(--ease),transform .45s var(--out)}
+.fw__cap b{display:block;font-family:var(--display);font-style:normal;font-weight:600;
+  font-size:16px;line-height:1.2;color:#F8F0E2;overflow-wrap:anywhere}
+.fw__cap span{display:block;margin-top:6px;font-family:var(--sans);font-size:11px;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--gold-on-dark)}
+
+.fw__card.is-hot{--sc:1.05; --rot:0deg; --dy:-16px;z-index:20;position:relative;
+  border-color:rgba(201,152,47,.52)}
+.fw__card.is-hot img{filter:saturate(1) brightness(1)}
+.fw__card.is-hot .fw__scrim{opacity:1}
+.fw__card.is-hot .fw__cap{opacity:1;transform:none}
+.fw__card.is-hot::after{opacity:1}
+.fw__card.is-hot .fw__play{transform:translate(-50%,-50%) scale(1);opacity:1;
+  background:rgba(10,2,3,.62)}
+.fw__card:last-child .fw__play,.fw__card.is-hot .fw__play{left:50%}
+.fw__card.is-hot .fw__shade{opacity:1}
+.fw__card:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.fw__deck.is-busy .fw__card:not(.is-hot){--sc:.975}
+
+.fw__hint{margin:12px 0 0;text-align:center;font-family:var(--sans);
+  font-size:13px;color:var(--text-3)}
+
+@media (max-width:1060px){ #filmwall{--fw-w:208px; --fw-h:268px; --fw-lap:60px} }
+
+@media (max-width:760px){
+  .fw__deck{justify-content:flex-start;overflow-x:auto;gap:12px;
+    padding:6px var(--fw-pad) 16px;margin-inline:calc(var(--fw-pad) * -1);
+    scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .fw__deck::-webkit-scrollbar{display:none}
+  .fw__card{--rot:0deg!important; --shift:0px!important; --sc:1!important; --dy:0px!important;
+    width:min(232px,72vw);height:302px;scroll-snap-align:center}
+  .fw__card + .fw__card{margin-left:0}
+  .fw__card img{filter:saturate(.94) brightness(.94)}
+  .fw__cap{opacity:1;transform:none}
+  .fw__shade{opacity:1}
+  .fw__play{left:50%;opacity:1}
+  .fw__card::after{opacity:1}
+  .fw__count{margin-left:0}
+  .fw__hint{display:none}
+}
+
+/* ---- the viewer ---- */
+.fw__view{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;
+  padding:clamp(14px,3vw,32px)}
+.fw__view[hidden]{display:none}
+.fw__veil{position:absolute;inset:0;background:rgba(5,1,2,.88);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.fw__box{position:relative;width:min(1000px,100%);display:flex;flex-direction:column;
+  border-radius:var(--r);overflow:hidden;background:var(--panel-solid);
+  border:1px solid var(--line-2);box-shadow:var(--shadow-lg)}
+.fw__box video{display:block;width:100%;max-height:70dvh;object-fit:contain;
+  background:var(--cine)}
+.fw__x{position:absolute;top:12px;right:12px;z-index:6;width:38px;height:38px;
+  border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:rgba(5,1,2,.62);border:1px solid var(--line-2)}
+.fw__x svg{width:13px;height:13px;fill:none;stroke:#F8F0E2;stroke-width:1.8;stroke-linecap:round}
+.fw__nav{position:absolute;top:35%;z-index:5;width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;
+  background:rgba(5,1,2,.55);border:1px solid var(--line-2);
+  transition:background .3s var(--ease),border-color .3s var(--ease)}
+.fw__nav svg{width:18px;height:18px;fill:none;stroke:#F8F0E2;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.fw__nav:hover{background:var(--gold);border-color:var(--gold)}
+.fw__nav:hover svg{stroke:#1B0A02}
+.fw__nav.p{left:12px} .fw__nav.n{right:12px}
+.fw__vcap{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+  padding:16px 20px 18px}
+.fw__vcap b{display:block;font-family:var(--display);font-style:normal;font-weight:600;
+  font-size:clamp(17px,2.4vw,22px);line-height:1.2;color:var(--text-1);
+  overflow-wrap:anywhere}
+.fw__vcap span{display:block;margin-top:5px;font-family:var(--sans);font-size:11px;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--gold-text)}
+.fw__vcap em{flex:none;font-family:var(--sans);font-style:normal;font-size:12.5px;
+  color:var(--text-3);white-space:nowrap;padding-top:4px}
+
+@media (prefers-reduced-motion:reduce){
+  .fw__card,.fw__play,.fw__cap,.fw__scrim{transition:none}
+}
+</style>
+
+<section id="filmwall" aria-labelledby="fwTitle">
+  <div class="fw__wrap">
+    <div class="fw__head">
+      <p class="fw__eyebrow">The podcast</p>
+      <div class="fw__rule"></div>
+      <h2 class="fw__h" id="fwTitle">Eagle's Cast</h2>
+      <p class="fw__lede">Students interviewing students, filmed on campus. Each episode puts a different pair in front of the mic and lets them talk — about the papers, the teachers, and what the year actually felt like.</p>
+    </div>
+
+    <div class="fw__rail">
+      <div class="fw__chips" id="fwChips" role="tablist" aria-label="Choose a set"></div>
+      <span class="fw__count"><b id="fwN">0</b> episodes</span>
+    </div>
+
+    <div class="fw__deckwrap"><div class="fw__deck" id="fwDeck"></div></div>
+    <p class="fw__hint">Hover a frame to bring it forward. Click to play the episode.</p>
+  </div>
+</section>
+
+<div class="fw__view" id="fwView" role="dialog" aria-modal="true" aria-label="Clip" hidden>
+  <div class="fw__veil" data-fw-close></div>
+  <div class="fw__box">
+    <button class="fw__x" type="button" data-fw-close aria-label="Close">
+      <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13"/></svg>
+    </button>
+    <video id="fwVid" playsinline controls preload="auto"></video>
+    <button class="fw__nav p" type="button" data-fw-step="-1" aria-label="Previous clip">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="fw__nav n" type="button" data-fw-step="1" aria-label="Next clip">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    <div class="fw__vcap">
+      <div><b id="fwVName"></b><span id="fwVMeta"></span></div>
+      <em id="fwVPos"></em>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ╔══════════════════════════════════════════════════════════════════╗
+     ║  THE CLIPS                                                        ║
+     ║  One row per film. `set` is the chip it files under — add a new   ║
+     ║  value and a new chip appears on its own. Drop the file in the    ║
+     ║  repo root and point `src` / `poster` at it.                      ║
+     ╚══════════════════════════════════════════════════════════════════╝ */
+  var FILM = [
+    {
+        "t": "Episode 01",
+        "m": "15 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-01.webp",
+        "src": "eaglecast-01.mp4"
+    },
+    {
+        "t": "Episode 02",
+        "m": "53 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-02.webp",
+        "src": "eaglecast-02.mp4"
+    },
+    {
+        "t": "Episode 03",
+        "m": "15 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-03.webp",
+        "src": "eaglecast-03.mp4"
+    },
+    {
+        "t": "Episode 04",
+        "m": "15 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-04.webp",
+        "src": "eaglecast-04.mp4"
+    },
+    {
+        "t": "Episode 05",
+        "m": "15 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-05.webp",
+        "src": "eaglecast-05.mp4"
+    },
+    {
+        "t": "Episode 06",
+        "m": "35 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-06.webp",
+        "src": "eaglecast-06.mp4"
+    },
+    {
+        "t": "Episode 07",
+        "m": "3 min 48 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-07.webp",
+        "src": "eaglecast-07.mp4"
+    },
+    {
+        "t": "Episode 08",
+        "m": "35 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-08.webp",
+        "src": "eaglecast-08.mp4"
+    },
+    {
+        "t": "Episode 09",
+        "m": "20 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-09.webp",
+        "src": "eaglecast-09.mp4"
+    },
+    {
+        "t": "Episode 10",
+        "m": "22 sec",
+        "set": "SWK Chronicles",
+        "poster": "eaglecast-10.webp",
+        "src": "eaglecast-10.mp4"
+    }
+];
+
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var esc = function (s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  };
+
+  var deck = $("#fwDeck"), chips = $("#fwChips"), view = $("#fwView"), vid = $("#fwVid");
+  var host = $("#filmwall");
+  if (!deck || !host) return;
+  var BASE_LAP = parseFloat(getComputedStyle(host).getPropertyValue("--fw-lap")) || 74;
+
+  /* The rake. Five tilts and five drops, cycled — a repeating pattern reads
+     as dealt, while a random one on every paint reads as broken. */
+  /* Each frame stacks above the one before it, so the strip of a card that
+     stays visible is its left edge — which is where the caption and the play
+     badge sit. Stack it the other way and every badge but the first hides
+     under its neighbour. */
+  var TILT = [-4, 2.4, -1.4, 3.2, -2.2];
+  var DROP = [10, 0, 16, 2, 12];
+
+  var SETS = [];
+  FILM.forEach(function (f) { if (SETS.indexOf(f.set) < 0) SETS.push(f.set); });
+
+  var cat = SETS[0], shown = [], hot = -1, at = 0, lastFocus = null;
+
+  /* One set means the chips say nothing the heading has not already said. */
+  if (SETS.length < 2) { chips.hidden = true; }
+  else {
+    chips.innerHTML = SETS.map(function (s, i) {
+      var n = FILM.filter(function (f) { return f.set === s; }).length;
+      return '<button class="fw__chip" type="button" role="tab" data-set="' + esc(s) + '"' +
+        ' aria-selected="' + (i === 0) + '">' + esc(s) + '<b>' + n + '</b></button>';
+    }).join("");
+    chips.addEventListener("click", function (e) {
+      var b = e.target.closest(".fw__chip"); if (!b) return;
+      cat = b.dataset.set;
+      Array.prototype.forEach.call(chips.children, function (c) {
+        c.setAttribute("aria-selected", String(c === b));
+      });
+      dealDeck();
+    });
+  }
+
+  function dealDeck() {
+    shown = FILM.filter(function (f) { return f.set === cat; });
+    hot = -1;
+    $("#fwN").textContent = shown.length;
+    deck.classList.remove("is-busy");
+    deck.innerHTML = shown.map(function (f, k) {
+      return '<button class="fw__card" type="button" data-i="' + k + '"' +
+        ' aria-label="Play ' + esc(f.t) + '"' +
+        ' style="--rot:' + TILT[k % 5] + "deg;--dy:" + DROP[k % 5] +
+        "px;--z:" + (k + 1) + '">' +
+        '<img src="' + f.poster + '" alt="" loading="lazy" decoding="async" ' +
+          'width="854" height="480">' +
+        '<span class="fw__scrim"></span>' +
+        '<span class="fw__shade"></span>' +
+        '<span class="fw__play"><svg viewBox="0 0 12 14" aria-hidden="true">' +
+          '<path d="M0 0l12 7-12 7z"/></svg></span>' +
+        '<span class="fw__cap"><b>' + esc(f.t) + '</b><span>' + esc(f.m) + "</span></span>" +
+      "</button>";
+    }).join("");
+    fit();
+  }
+
+  /* Lift one frame and push its neighbours out of the way. The further a card
+     sits from the hot one the further it travels, so the fan opens instead of
+     sliding sideways as a block. */
+  /* Markaz never deals more than five frames at once, so a fixed overlap is
+     enough there. Ten episodes at that overlap run about 1900px wide and hang
+     off both sides of the page, so the overlap is measured instead: tightened
+     until the fan fits the column, never tighter than leaving a third of each
+     frame showing, and never looser than the value the stylesheet starts with. */
+  function fit() {
+    if (innerWidth <= 760) { host.style.removeProperty("--fw-lap"); return; }
+    var n = deck.children.length; if (n < 2) return;
+    var card = deck.firstElementChild;
+    var w = card ? card.getBoundingClientRect().width : 0; if (!w) return;
+    var room = deck.parentElement.getBoundingClientRect().width;
+    var need = (n * w - room) / (n - 1);
+    var lap = Math.max(BASE_LAP, Math.min(need, w * 0.66));
+    host.style.setProperty("--fw-lap", Math.round(lap) + "px");
+  }
+
+  function spread(i) {
+    var cards = deck.querySelectorAll(".fw__card");
+    hot = i;
+    deck.classList.toggle("is-busy", i > -1);
+    Array.prototype.forEach.call(cards, function (c, k) {
+      c.classList.toggle("is-hot", k === i);
+      c.style.setProperty("--shift",
+        i < 0 ? "0px"
+              : (k === i ? 0 : (k < i ? -1 : 1) * (34 + 6 * Math.abs(k - i))) + "px");
+    });
+  }
+
+  /* The gap between pressing play and seeing a first frame is where a video
+     feels broken, and these files are large enough for that gap to show.
+     Pointing at a frame — or first touching it — is a reliable sign a press is
+     coming, so the fetch starts then and the opening is usually already in
+     cache by the time the press lands. Nothing is fetched for an episode
+     nobody goes near. */
+  var warmed = {};
+  function warm(src) {
+    if (!src || warmed[src]) return;
+    warmed[src] = 1;
+    var v = document.createElement("video");
+    v.preload = "auto"; v.muted = true; v.src = src;
+    v.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(v);
+    setTimeout(function () { try { v.remove(); } catch (e) {} }, 15000);
+  }
+  function warmAt(i) { if (shown[i]) warm(shown[i].src); }
+
+  var fine = window.matchMedia("(hover:hover) and (pointer:fine)");
+  deck.addEventListener("pointerover", function (e) {
+    if (e.pointerType === "touch" || !fine.matches || innerWidth <= 760) return;
+    var c = e.target.closest(".fw__card"); if (!c) return;
+    var i = +c.dataset.i; if (i !== hot) { spread(i); warmAt(i); }
+  });
+  /* phones get no hover, so the touch that precedes the tap is the signal */
+  deck.addEventListener("touchstart", function (e) {
+    var c = e.target.closest(".fw__card"); if (c) warmAt(+c.dataset.i);
+  }, { passive: true });
+  deck.addEventListener("pointerleave", function () {
+    if (fine.matches && innerWidth > 760) spread(-1);
+  });
+  deck.addEventListener("focusin", function (e) {
+    var c = e.target.closest(".fw__card"); if (c) { spread(+c.dataset.i); warmAt(+c.dataset.i); }
+  });
+  deck.addEventListener("click", function (e) {
+    var c = e.target.closest(".fw__card"); if (c) open(+c.dataset.i);
+  });
+
+  /* ---- the viewer ---- */
+  function paint() {
+    var f = shown[at];
+    vid.pause();
+    vid.setAttribute("poster", f.poster);
+    vid.setAttribute("src", f.src);
+    $("#fwVName").textContent = f.t;
+    $("#fwVMeta").textContent = f.m;
+    $("#fwVPos").textContent = (at + 1) + " of " + shown.length;
+    var p = vid.play(); if (p && p.catch) p.catch(function () {});
+    warm(shown[(at + 1) % shown.length].src);
+  }
+
+  function open(i) {
+    lastFocus = document.activeElement;
+    at = (i + shown.length) % shown.length;
+    view.hidden = false;
+    document.documentElement.style.overflow = "hidden";
+    paint();
+    $(".fw__x", view).focus();
+  }
+
+  function close() {
+    vid.pause();
+    vid.removeAttribute("src");
+    vid.load();
+    view.hidden = true;
+    document.documentElement.style.overflow = "";
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  function step(d) { at = (at + d + shown.length) % shown.length; paint(); }
+
+  view.addEventListener("click", function (e) {
+    if (e.target.closest("[data-fw-close]")) return close();
+    var s = e.target.closest("[data-fw-step]");
+    if (s) step(+s.dataset.fwStep);
+  });
+
+  addEventListener("keydown", function (e) {
+    if (view.hidden) return;
+    if (e.key === "Escape") close();
+    else if (e.key === "ArrowLeft") step(-1);
+    else if (e.key === "ArrowRight") step(1);
+  });
+
+  dealDeck();
+
+  var rt;
+  addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () {
+      host.style.removeProperty("--fw-lap");
+      BASE_LAP = parseFloat(getComputedStyle(host).getPropertyValue("--fw-lap")) || BASE_LAP;
+      fit();
+    }, 120);
+  });
+})();
+</script>
+
 <!-- ═══════════════════════ CINEMATIC — SWK ═══════════════════════ -->
 <!-- Moved up from its old slot below ABOUT. A visitor who has just picked a
      route wants to know who is behind it, so the band now answers that
