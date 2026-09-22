@@ -9542,15 +9542,22 @@ body::after{
 
   /* ╔══════════════════════════════════════════════════════════════════╗
      ║  THE CLIPS                                                        ║
-     ║  One row per film. `set` is the chip it files under — add a new   ║
-     ║  value and a new chip appears on its own. Drop the file in the    ║
-     ║  repo root and point `src` / `poster` at it.                      ║
+     ║  One row per episode. `set` is the chip it files under — add a    ║
+     ║  new value and a new chip appears on its own. `focus` is where    ║
+     ║  the face sits in the cover, as [x%, y%]: the card is portrait    ║
+     ║  and the cover is wide, so without it the crop lands on whatever  ║
+     ║  happens to be in the middle of the frame. Drop the files in the  ║
+     ║  repo root and point `src` / `poster` at them.                    ║
      ╚══════════════════════════════════════════════════════════════════╝ */
   var FILM = [
     {
         "t": "Episode 01",
         "m": "15 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            19,
+            41
+        ],
         "poster": "eaglecast-01.webp",
         "src": "eaglecast-01.mp4"
     },
@@ -9558,6 +9565,10 @@ body::after{
         "t": "Episode 02",
         "m": "53 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            13,
+            36
+        ],
         "poster": "eaglecast-02.webp",
         "src": "eaglecast-02.mp4"
     },
@@ -9565,6 +9576,10 @@ body::after{
         "t": "Episode 03",
         "m": "15 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            33,
+            37
+        ],
         "poster": "eaglecast-03.webp",
         "src": "eaglecast-03.mp4"
     },
@@ -9572,6 +9587,10 @@ body::after{
         "t": "Episode 04",
         "m": "15 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            84,
+            70
+        ],
         "poster": "eaglecast-04.webp",
         "src": "eaglecast-04.mp4"
     },
@@ -9579,6 +9598,10 @@ body::after{
         "t": "Episode 05",
         "m": "15 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            18,
+            46
+        ],
         "poster": "eaglecast-05.webp",
         "src": "eaglecast-05.mp4"
     },
@@ -9586,6 +9609,10 @@ body::after{
         "t": "Episode 06",
         "m": "35 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            29,
+            31
+        ],
         "poster": "eaglecast-06.webp",
         "src": "eaglecast-06.mp4"
     },
@@ -9593,6 +9620,10 @@ body::after{
         "t": "Episode 07",
         "m": "3 min 48 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            77,
+            70
+        ],
         "poster": "eaglecast-07.webp",
         "src": "eaglecast-07.mp4"
     },
@@ -9600,6 +9631,10 @@ body::after{
         "t": "Episode 08",
         "m": "35 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            27,
+            68
+        ],
         "poster": "eaglecast-08.webp",
         "src": "eaglecast-08.mp4"
     },
@@ -9607,6 +9642,10 @@ body::after{
         "t": "Episode 09",
         "m": "20 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            37,
+            37
+        ],
         "poster": "eaglecast-09.webp",
         "src": "eaglecast-09.mp4"
     },
@@ -9614,6 +9653,10 @@ body::after{
         "t": "Episode 10",
         "m": "22 sec",
         "set": "SWK Chronicles",
+        "focus": [
+            45,
+            64
+        ],
         "poster": "eaglecast-10.webp",
         "src": "eaglecast-10.mp4"
     }
@@ -9673,8 +9716,9 @@ body::after{
         ' aria-label="Play ' + esc(f.t) + '"' +
         ' style="--rot:' + TILT[k % 5] + "deg;--dy:" + DROP[k % 5] +
         "px;--z:" + (k + 1) + '">' +
-        '<img src="' + f.poster + '" alt="" loading="lazy" decoding="async" ' +
-          'width="854" height="480">' +
+        '<img src="' + f.poster + '" alt="" loading="lazy" decoding="async"' +
+          (f.focus ? ' style="object-position:' + f.focus[0] + '% ' + f.focus[1] + '%"' : '') +
+          '>' +
         '<span class="fw__scrim"></span>' +
         '<span class="fw__shade"></span>' +
         '<span class="fw__play"><svg viewBox="0 0 12 14" aria-hidden="true">' +
