@@ -13498,6 +13498,67 @@ function fmtTime(s){
     hold(held);
   }
 
+
+  /* ══════════════════════════════════ THE STREAM CARDS ══════════════════════
+     The four route cards were written straight into this page, while the
+     control room edited a `streams` table nothing read. The two drifted: the
+     page showed four cards, the table held three, and General existed only in
+     the markup. The counts drifted too — both sides count live, but the page
+     counted against each card's hardcoded data-subjects and the panel against
+     the row's subjects array, so Commerce read 4 here and 6 there.
+
+     The markup below is still in the page and is what a visitor sees first,
+     which keeps the cards in the HTML for a crawler and for anyone with no
+     JavaScript. Once the live data lands, the rail is rebuilt from it, and
+     from then on a route is edited in one place.
+
+     Each card's emblem is chosen by the row's `icon`; an unknown value falls
+     back to the book rather than drawing nothing. */
+  var TRIO_ICONS = {
+  "cs": "<svg viewBox=\"0 0 120 120\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"34\" y=\"34\" width=\"52\" height=\"52\" rx=\"9\"/><rect x=\"49\" y=\"49\" width=\"22\" height=\"22\" rx=\"4\"/><path d=\"M44 34V22M60 34V22M76 34V22M44 98V86M60 98V86M76 98V86M34 44H22M34 60H22M34 76H22M98 44H86M98 60H86M98 76H86\"/></svg>",
+  "med": "<svg viewBox=\"0 0 120 120\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><ellipse cx=\"60\" cy=\"60\" rx=\"45\" ry=\"17\" transform=\"rotate(-28 60 60)\" opacity=\".55\"/><path d=\"M50 26v22L33 84a8 8 0 0 0 7 12h40a8 8 0 0 0 7-12L70 48V26\"/><path d=\"M46 26h28M42 74h36\"/><circle cx=\"54\" cy=\"83\" r=\"3.2\"/><circle cx=\"68\" cy=\"88\" r=\"2.4\"/></svg>",
+  "commerce": "<svg viewBox=\"0 0 120 120\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M60 24v72M42 96h36M26 40h68\"/><circle cx=\"60\" cy=\"32\" r=\"5\"/><path d=\"M26 40 14 65a13 13 0 0 0 24 0Z\"/><path d=\"M94 40 82 65a13 13 0 0 0 24 0Z\"/></svg>",
+  "book": "<svg viewBox=\"0 0 120 120\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M60 38c-7-7-17-10-28-10H20v56h12c11 0 21 3 28 10 7-7 17-10 28-10h12V28H88c-11 0-21 3-28 10Z\"/><path d=\"M60 38v56\"/><path d=\"M32 46h14M32 60h14M74 46h14M74 60h14\"/></svg>"
+};
+
+  function renderStreams() {
+    var rail = document.querySelector("#trio .trio__rail");
+    var rows = (window.CO_DATA && window.CO_DATA.STREAMS) || [];
+    if (!rail || !rows.length) return false;
+
+    var esc = __co.esc;
+    rail.innerHTML = rows.map(function (s, i) {
+      var subs = (s.subjects || []).join(",");
+      var n = String(i + 1);
+      if (n.length < 2) n = "0" + n;
+      return '<article class="trio__c" style="--i:' + i + '" data-subjects="' + esc(subs) + '"' +
+             ' aria-label="' + esc(s.title) + ' stream">' +
+               '<span class="trio__glass" aria-hidden="true"></span>' +
+               '<span class="trio__mark" aria-hidden="true">' +
+                 (TRIO_ICONS[s.icon] || TRIO_ICONS.book) + "</span>" +
+               '<div class="trio__in">' +
+                 '<div class="trio__top">' +
+                   '<span class="trio__code">' + esc(s.code || "") + "</span>" +
+                   '<span class="trio__n" aria-hidden="true">' + n + "</span>" +
+                 "</div>" +
+                 '<h3 class="trio__t">' + esc(s.title) + "</h3>" +
+                 '<p class="trio__d">' + esc(s.blurb || "") + "</p>" +
+                 '<div class="trio__more">' +
+                   '<div class="trio__list" data-list></div>' +
+                   '<button class="btn btn--liquid btn--liquid-clear btn--sm btn--wide" data-jump>' +
+                     '<svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg>' +
+                     '<span class="btn__lq">See these teachers</span></button>' +
+                 "</div>" +
+                 '<div class="trio__chips">' +
+                   '<span class="trio__chip" data-count-chip>&mdash;</span>' +
+                   '<span class="trio__chip trio__chip--acc">' + esc(s.chip || "") + "</span>" +
+                 "</div>" +
+               "</div>" +
+             "</article>";
+    }).join("");
+    return true;
+  }
+
   /* ========================================================= THE STREAMS */
   /* Spreads when it comes into view, and holds one card forward at a time. */
   function initTrio() {
@@ -13658,7 +13719,7 @@ function fmtTime(s){
   }
 
   function boot() {
-    [initTheme, initSound, initPreloader, initChrome, initSpy, initWheel, initDial, initTrio,
+    [initTheme, initSound, initPreloader, initChrome, initSpy, initWheel, initDial, renderStreams, initTrio,
      initCounters, initLiquid, initTouchHover, initPaneGlow, initDockYield,
      Scroller.enable].forEach(function (fn) {
       try { fn(); } catch (e) { if (window.console) console.warn("[co]", e); }
