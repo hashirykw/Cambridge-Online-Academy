@@ -9186,7 +9186,7 @@ body::after{
 <!-- ══════════════════════ A PROJECT OF SWK SOLUTIONS ══════════════════════
      The full cine panel lives on the about page; this is the credit, and it
      has to be able to carry its own weight between the founder's message and
-     the three routes. A one-line strip could not — it read as a footnote.
+     the routes. A one-line strip could not — it read as a footnote.
 
      Everything printed here is already the site's own: the sentence is the
      opening of the SWK panel, and the three facts are the ones the founder's
@@ -9233,7 +9233,7 @@ body::after{
   <div class="head center">
     <p class="eyebrow">Choose your stream</p>
     <div class="rule"></div>
-    <h2>Three Routes<br><em>Through the Same Faculty</em></h2>
+    <h2><span data-routes>Four</span> Routes<br><em>Through the Same Faculty</em></h2>
     <p class="lede">Open any route to see the teachers who take its classes. Every name here also appears on the full faculty roster further down this page.</p>
   </div>
 
@@ -9299,6 +9299,28 @@ body::after{
           <div class="trio__chips">
             <span class="trio__chip" data-count-chip>&mdash;</span>
             <span class="trio__chip trio__chip--acc">Accounts &middot; Business &middot; Econ</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="trio__c" style="--i:3" data-subjects="English Language,Urdu,Islamiyat,Pakistan Studies,Sociology &amp; Psychology"
+               aria-label="General stream">
+        <span class="trio__glass" aria-hidden="true"></span>
+        <span class="trio__mark" aria-hidden="true"><svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M60 38c-7-7-17-10-28-10H20v56h12c11 0 21 3 28 10 7-7 17-10 28-10h12V28H88c-11 0-21 3-28 10Z"/><path d="M60 38v56"/><path d="M32 46h14M32 60h14M74 46h14M74 60h14"/></svg></span>
+        <div class="trio__in">
+          <div class="trio__top">
+            <span class="trio__code">O Level &middot; A Level</span>
+            <span class="trio__n" aria-hidden="true">04</span>
+          </div>
+          <h3 class="trio__t">General</h3>
+          <p class="trio__d">The subjects every stream still has to sit &mdash; English, Urdu, Islamiyat and Pakistan Studies &mdash; plus Sociology &amp; Psychology for those taking it as an option. Taught by specialists, not handed to whoever is free.</p>
+          <div class="trio__more">
+            <div class="trio__list" data-list></div>
+            <button class="btn btn--liquid btn--liquid-clear btn--sm btn--wide" data-jump><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See these teachers</span></button>
+          </div>
+          <div class="trio__chips">
+            <span class="trio__chip" data-count-chip>&mdash;</span>
+            <span class="trio__chip trio__chip--acc">English &middot; Urdu &middot; Humanities</span>
           </div>
         </div>
       </article>
@@ -13544,6 +13566,15 @@ function fmtTime(s){
                "</div>" +
              "</article>";
     }).join("");
+
+    /* The heading said "Four Routes" in the markup and had to be edited by
+       hand whenever a route was added or retired — which is exactly the sort
+       of thing that silently goes stale. It counts the cards it just drew. */
+    var WORDS = ["No", "One", "Two", "Three", "Four", "Five", "Six",
+                 "Seven", "Eight", "Nine", "Ten"];
+    var label = document.querySelector("[data-routes]");
+    if (label) label.textContent = WORDS[rows.length] || String(rows.length);
+
     return true;
   }
 
@@ -14910,10 +14941,15 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ---- the stream deck ----
-     Lifted clear of the faculty step: the three routes sit on the home page
+     Lifted clear of the faculty step: the routes sit on the home page
      and the roster on its own, so the deck has to wire itself whether or
      not the finder exists beside it. */
-  co.step("stream deck", function () {
+  /* Named and exposed so it can be run a second time. config.js draws the
+     page from a cached copy first and fetches in the background; on a first
+     visit there is no cache, so the live rows land AFTER this has already
+     run. Without a way back in, the deck kept whatever the markup said and
+     the control room appeared to do nothing. */
+  function wireStreamDeck() {
     (function () {
       var trio = document.getElementById("trio");
       if (!trio) return;
@@ -14995,7 +15031,24 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
     })();
-  });
+  }
+
+  co.step("stream deck", wireStreamDeck);
+
+  /* The page hands itself back when fresh rows arrive. config.js calls this
+     after a fetch that changed something; without it, CO_DATA was updated and
+     nothing on screen moved — which is why editing a route in the control room
+     appeared to do nothing until the next visit, when the cache happened to be
+     warm. */
+  window.CO_REFRESH = function () {
+    try {
+      if (typeof renderStreams === "function" && renderStreams()) {
+        /* The cards were replaced, so their handlers went with them. */
+        wireStreamDeck();
+        if (typeof initTrio === "function") initTrio();
+      }
+    } catch (e) { if (window.console) console.warn("[co] refresh: streams", e); }
+  };
 
 
   /* The "courses" step is gone with the subject grid it painted. Subject
