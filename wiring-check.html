@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wiring check — Cambridge Online</title>
+<!--
+  ══════════════════════════════════════════════════════════════════════════
+  WIRING CHECK
+
+  Does every screen in the control room actually reach the website?
+
+  Three of them did not, and nothing said so: the stream cards were written
+  into the page while the panel edited a table nobody read, the ten Eagle's
+  Cast episodes were hardcoded the same way, and config.js called a refresh
+  hook the page never implemented — so live rows arrived and nothing redrew.
+  Each looked fine from the panel. You only found out by editing something
+  and watching the site ignore it.
+
+  This walks the whole chain for every section and says where it breaks:
+
+    TABLE   the row is in Supabase
+      ↓
+    FETCH   config.js asks for that table
+      ↓
+    MAP     it becomes a CO_DATA key
+      ↓
+    DRAW    the page renders that key
+      ↓
+    LIVE    it redraws when the data changes, rather than only on reload
+
+  Put this file in the website repo and open /wiring-check. It reads through
+  the same config.js the site uses, so it tests what is deployed, not what is
+  in the editor.
+  ══════════════════════════════════════════════════════════════════════════
+-->
+<style>
+  :root{
+    --bg:#0B0604; --panel:#16100C; --line:rgba(245,237,224,.13);
+    --t1:#F5EDE0; --t2:rgba(245,237,224,.72); --t3:rgba(245,237,224,.45);
+    --ok:#5FD1A3; --bad:#E06A6A; --warn:#E3B55D; --gold:#C9982F;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--t1);
+    font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding:clamp(20px,5vw,48px)}
+  .wrap{max-width:1040px;margin-inline:auto}
+  h1{font-size:clamp(24px,4vw,34px);margin:0 0 6px;font-weight:600;letter-spacing:-.01em}
+  .sub{color:var(--t2);margin:0 0 28px;max-width:70ch}
+  .sub code{font-family:var(--mono);font-size:.86em;color:var(--gold)}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 22px}
+  button{font:inherit;padding:9px 18px;border-radius:999px;cursor:pointer;
+    background:var(--gold);border:1px solid var(--gold);color:#1B0A02;font-weight:600}
+  button.ghost{background:transparent;color:var(--t2);border-color:var(--line)}
+  button:disabled{opacity:.5;cursor:default}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+  th,td{text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);
+    vertical-align:top}
+  th{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);
+    font-weight:600;white-space:nowrap}
+  td.sec{font-weight:600;white-space:nowrap}
+  td.n{font-family:var(--mono);font-size:13px;color:var(--t2);text-align:right;
+    white-space:nowrap}
+  .p{font-family:var(--mono);font-size:12px;font-weight:700}
+  .p.ok{color:var(--ok)} .p.bad{color:var(--bad)} .p.warn{color:var(--warn)}
+  .p.skip{color:var(--t3)}
+  td.note{color:var(--t2);font-size:13px;line-height:1.5}
+  .sum{margin:26px 0 0;padding:18px 20px;border:1px solid var(--line);
+    border-radius:12px;background:var(--panel)}
+  .sum b{display:block;margin-bottom:6px}
+  .sum p{margin:0 0 10px;color:var(--t2);font-size:14px}
+  .sum p:last-child{margin:0}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+  .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+  .dot.warn{background:var(--warn)}
+  .quiet{color:var(--t3);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Wiring check</h1>
+  <p class="sub">
+    Walks every control-room screen through the chain that has to hold for an
+    edit to appear on the site: the table exists, <code>config.js</code> fetches
+    it, it becomes a <code>CO_DATA</code> key, the page draws that key, and the
+    page redraws when it changes. A break anywhere means the panel saves
+    happily and the website ignores it.
+  </p>
+
+  <div class="bar">
+    <button id="run">Run the check</button>
+    <button class="ghost" id="fresh">Run without the cache</button>
+  </div>
+
+  <div id="out"></div>
+
+  <!-- The homepage, loaded for real. The sections being checked live there,
+       not here, so counting elements in this document would report zero for
+       every one of them and call a working site broken. Same origin, so its
+       DOM can be read directly once it has drawn. -->
+  <iframe id="site" src="/" title="The site, loaded for inspection"
+          style="position:fixed;left:-9999px;top:0;width:1400px;height:1000px;border:0"
+          aria-hidden="true"></iframe>
+</div>
+
+<script src="./config.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* Every control-room screen, and what has to be true for it to reach the
+     site. `dom` is a selector whose count should track the data — the only
+     honest proof that the rows were drawn rather than merely fetched. */
+  var SECTIONS = [
+    { name: "Faculty",        screen: "Faculty",            table: "faculty",
+      key: "FACULTY",  dom: null,
+      /* The roster moved to its own page, so it cannot be counted from the
+         homepage. The teacher counts on the stream cards come from the same
+         list, so a broken faculty feed shows up there anyway. */ },
+    { name: "Stream cards",   screen: "Stream cards",       table: "streams",
+      key: "STREAMS",  dom: "#trio .trio__c" },
+    { name: "Subjects",       screen: "Subjects",           table: "subjects",
+      key: "SUBJECTS", dom: null },
+    { name: "Lesson lists",   screen: "Lesson lists",       table: "syllabus",
+      key: "SYLLABUS", dom: null },
+    { name: "Campuses",       screen: "Campuses",           table: "campuses",
+      key: "CAMPUSES", dom: null },
+    { name: "Reviews",        screen: "Reviews",            table: "reviews",
+      key: "REVIEWS",  dom: null },
+    { name: "FAQs",           screen: "FAQs",               table: "faqs",
+      key: "FAQ",      dom: null },
+    { name: "Corner ads",     screen: "Corner ads",         table: "ads",
+      key: "STOCK",    dom: null },
+    { name: "Eagle's Cast",   screen: "Eagle's Cast",       table: "episodes",
+      key: "EPISODES", dom: "#filmwall .fw__card" },
+    /* Mapped into CO_DATA, but no page reads the key. Fetching it is not the
+       same as using it, and "the data arrived" would be a misleading pass. */
+    { name: "Discounts",      screen: "Discounts",          table: "promos",
+      key: "PROMO",    dom: null, unused: true,
+      why: "config.js maps CO_DATA.PROMO, but no page reads it — the ribbon on the site is not driven by this screen." },
+    { name: "Popups",         screen: "Popups & notices",   table: "popups",
+      key: null,       dom: null, unused: true,
+      why: "config.js does not fetch this table, and the admissions notice computes its own dates in the page." },
+    { name: "Settings",       screen: "Settings",           table: "settings",
+      key: "SETTINGS", dom: null }
+  ];
+
+  var cfg = window.CO_CONFIG || {};
+  var REST = (cfg.url || "").replace(/\/+$/, "") + "/rest/v1/";
+  var HEAD = { apikey: cfg.anonKey, Authorization: "Bearer " + cfg.anonKey };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  /* Ask for zero rows and read the count out of the Content-Range header —
+     cheaper than pulling the table just to measure it. */
+  function countRows(table) {
+    return fetch(REST + table + "?select=id&limit=1", {
+      headers: Object.assign({ Prefer: "count=exact" }, HEAD)
+    }).then(function (r) {
+      if (!r.ok) return { n: null, err: r.status === 404 ? "no such table" : ("HTTP " + r.status) };
+      var cr = r.headers.get("content-range") || "";
+      var m = cr.match(/\/(\d+)$/);
+      if (m) return { n: +m[1], err: null };
+      /* The header is there but unreadable — it needs to be exposed to the
+         browser, and anything sitting in front of Supabase may strip it.
+         Count the rows instead rather than reporting a blank. */
+      return fetch(REST + table + "?select=id", { headers: HEAD })
+        .then(function (r2) { return r2.ok ? r2.json() : []; })
+        .then(function (rows) { return { n: rows.length, err: null }; })
+        .catch(function () { return { n: null, err: "could not count" }; });
+    }).catch(function (e) { return { n: null, err: String(e.message || e) }; });
+  }
+
+  function pill(state, text) {
+    return '<span class="p ' + state + '">' + text + "</span>";
+  }
+
+  function row(s, db, data, drawn) {
+    var fetched = db.err !== "no such table" && db.n !== null;
+    var mapped  = s.key && window.CO_DATA && window.CO_DATA[s.key] !== undefined;
+    var count   = mapped ? (Array.isArray(window.CO_DATA[s.key])
+                    ? window.CO_DATA[s.key].length
+                    : (window.CO_DATA[s.key] ? 1 : 0)) : null;
+
+    var verdict, note;
+    if (db.err === "no such table") {
+      verdict = pill("bad", "NO TABLE");
+      note = "The control room writes here, but the table does not exist. Run the migration that creates it.";
+    } else if (db.err) {
+      verdict = pill("bad", "BLOCKED");
+      note = "Could not read the table: " + esc(db.err) +
+             ". Usually row-level security — anonymous visitors need select on it, or the site cannot draw it.";
+    } else if (s.unused) {
+      verdict = pill("bad", "NOT WIRED");
+      return "<tr>" +
+        '<td class="sec">' + esc(s.name) + '<br><span class="quiet">' + esc(s.screen) + "</span></td>" +
+        '<td class="n">' + (db.n === null ? "—" : db.n) + "</td>" +
+        '<td class="n">' + (count === null ? "—" : count) + "</td>" +
+        '<td class="n"><span class="quiet">n/a</span></td>' +
+        "<td>" + verdict + "</td>" +
+        '<td class="note">' + esc(s.why) + "</td></tr>";
+    } else if (!s.key) {
+      verdict = pill("bad", "NOT WIRED");
+      note = "config.js never fetches this table, so nothing you change on this screen reaches the site.";
+    } else if (!mapped) {
+      verdict = pill("bad", "NOT FETCHED");
+      note = "The table has rows but config.js does not turn it into CO_DATA." + s.key + ".";
+    } else if (db.n > 0 && count === 0) {
+      verdict = pill("bad", "EMPTY");
+      note = db.n + " rows in the table, none in CO_DATA. Usually every row has active = false, or a filter is dropping them.";
+    } else if (s.dom && drawn === 0 && count > 0) {
+      verdict = pill("bad", "NOT DRAWN");
+      note = count + " rows reached the page and nothing was rendered. The data arrives; the section ignores it.";
+    } else if (s.dom && count > 0 && drawn !== count) {
+      verdict = pill("warn", "MISMATCH");
+      note = "Page shows " + drawn + " of " + count +
+             ". Either the markup is still the hardcoded fallback, or some rows are filtered out when drawn.";
+    } else if (!s.dom) {
+      verdict = pill("ok", "REACHES PAGE");
+      note = "Data arrives. This page cannot see the section itself, so open the site and confirm the change by eye.";
+    } else {
+      verdict = pill("ok", "OK");
+      note = "Table, fetch, map and render all agree.";
+    }
+
+    return "<tr>" +
+      '<td class="sec">' + esc(s.name) + '<br><span class="quiet">' + esc(s.screen) + "</span></td>" +
+      '<td class="n">' + (db.n === null ? "—" : db.n) + "</td>" +
+      '<td class="n">' + (count === null ? "—" : count) + "</td>" +
+      '<td class="n">' + (s.dom ? (drawn === null ? "—" : drawn) : '<span class="quiet">n/a</span>') + "</td>" +
+      "<td>" + verdict + "</td>" +
+      '<td class="note">' + note + "</td>" +
+    "</tr>";
+  }
+
+  function render(rows, refreshOk) {
+    var bad = (rows.match(/class="p bad"/g) || []).length;
+    var warn = (rows.match(/class="p warn"/g) || []).length;
+
+    var head = "<table><tr>" +
+      "<th>Section</th><th>In table</th><th>Reached page</th><th>Drawn</th>" +
+      "<th>Verdict</th><th>What it means</th></tr>" + rows + "</table>";
+
+    var sum = '<div class="sum"><b>' +
+      '<span class="dot ' + (bad ? "bad" : warn ? "warn" : "ok") + '"></span>' +
+      (bad ? bad + " section" + (bad === 1 ? "" : "s") + " not reaching the site"
+           : warn ? warn + " to look at"
+           : "Every section is wired") + "</b>";
+
+    sum += "<p><b>Redraw on change:</b> " +
+      (refreshOk
+        ? "wired. config.js hands fresh rows back to the page, so an edit shows up on the next load."
+        : "<span style='color:var(--bad)'>missing</span>. config.js calls window.CO_REFRESH when data changes and the page does not implement it — so rows update and nothing on screen moves until the cache expires.") +
+      "</p>";
+
+    sum += '<p class="quiet">Counts can differ legitimately: the table holds every row, ' +
+      "CO_DATA holds only the active ones, and a section may draw a subset. A count of " +
+      "zero drawn against a positive count reached is never legitimate.</p></div>";
+
+    document.getElementById("out").innerHTML = head + sum;
+  }
+
+  function run(skipCache) {
+    var btns = document.querySelectorAll("button");
+    [].forEach.call(btns, function (b) { b.disabled = true; });
+    document.getElementById("out").innerHTML = '<p class="quiet">Reading the database…</p>';
+
+    if (skipCache) {
+      try { localStorage.clear(); } catch (e) {}
+      /* the homepage caches too, so it has to be reloaded after clearing */
+      var f = document.getElementById("site");
+      if (f) f.src = "/?cachebust=" + Date.now();
+    }
+
+    /* Give the homepage time to fetch and draw before counting what it drew.
+       Checking too early reports a working section as broken, which is worse
+       than reporting nothing. */
+    function siteReady() {
+      var f = document.getElementById("site");
+      return new Promise(function (done) {
+        var waited = 0;
+        (function poll() {
+          var d = null;
+          try { d = f.contentDocument; } catch (e) {}
+          var drawn = d && d.querySelector("#trio .trio__c, #filmwall .fw__card");
+          if ((drawn && waited > 2500) || waited > 12000) return done(d);
+          waited += 400;
+          setTimeout(poll, 400);
+        })();
+      });
+    }
+
+    Promise.all([
+      Promise.all(SECTIONS.map(function (s) { return countRows(s.table); })),
+      (window.CO_READY || Promise.resolve(null)),
+      siteReady()
+    ]).then(function (r) {
+      var dbs = r[0], doc = r[2];
+      var rows = SECTIONS.map(function (s, i) {
+        var drawn = (s.dom && doc) ? doc.querySelectorAll(s.dom).length : null;
+        return row(s, dbs[i], null, drawn);
+      }).join("");
+      render(rows, typeof window.CO_REFRESH === "function");
+      [].forEach.call(btns, function (b) { b.disabled = false; });
+    });
+  }
+
+  document.getElementById("run").onclick = function () { run(false); };
+  document.getElementById("fresh").onclick = function () { run(true); };
+  run(false);
+})();
+</script>
+</body>
+</html>
