@@ -9186,7 +9186,7 @@ body::after{
 <!-- ══════════════════════ A PROJECT OF SWK SOLUTIONS ══════════════════════
      The full cine panel lives on the about page; this is the credit, and it
      has to be able to carry its own weight between the founder's message and
-     the four routes. A one-line strip could not — it read as a footnote.
+     the three routes. A one-line strip could not — it read as a footnote.
 
      Everything printed here is already the site's own: the sentence is the
      opening of the SWK panel, and the three facts are the ones the founder's
@@ -9233,7 +9233,7 @@ body::after{
   <div class="head center">
     <p class="eyebrow">Choose your stream</p>
     <div class="rule"></div>
-    <h2>Four Routes<br><em>Through the Same Faculty</em></h2>
+    <h2>Three Routes<br><em>Through the Same Faculty</em></h2>
     <p class="lede">Open any route to see the teachers who take its classes. Every name here also appears on the full faculty roster further down this page.</p>
   </div>
 
@@ -9302,27 +9302,7 @@ body::after{
           </div>
         </div>
       </article>
-      <article class="trio__c" style="--i:3" data-subjects="English Language,Urdu,Islamiyat,Pakistan Studies,Sociology &amp; Psychology"
-               aria-label="General stream">
-        <span class="trio__glass" aria-hidden="true"></span>
-        <span class="trio__mark" aria-hidden="true"><svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M60 38c-7-7-17-10-28-10H20v56h12c11 0 21 3 28 10 7-7 17-10 28-10h12V28H88c-11 0-21 3-28 10Z"/><path d="M60 38v56"/><path d="M32 46h14M32 60h14M74 46h14M74 60h14"/></svg></span>
-        <div class="trio__in">
-          <div class="trio__top">
-            <span class="trio__code">O Level &middot; A Level</span>
-            <span class="trio__n" aria-hidden="true">04</span>
-          </div>
-          <h3 class="trio__t">General</h3>
-          <p class="trio__d">The subjects every stream still has to sit &mdash; English, Urdu, Islamiyat and Pakistan Studies &mdash; plus Sociology &amp; Psychology for those taking it as an option. Taught by specialists, not handed to whoever is free.</p>
-          <div class="trio__more">
-            <div class="trio__list" data-list></div>
-            <button class="btn btn--liquid btn--liquid-clear btn--sm btn--wide" data-jump><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">See these teachers</span></button>
-          </div>
-          <div class="trio__chips">
-            <span class="trio__chip" data-count-chip>&mdash;</span>
-            <span class="trio__chip trio__chip--acc">English &middot; Urdu &middot; Humanities</span>
-          </div>
-        </div>
-      </article>
+      
     </div>
     <div class="trio__dots" id="trioDots" role="tablist" aria-label="Stream cards"></div>
   </div>
@@ -9549,7 +9529,15 @@ body::after{
      ║  happens to be in the middle of the frame. Drop the files in the  ║
      ║  repo root and point `src` / `poster` at them.                    ║
      ╚══════════════════════════════════════════════════════════════════╝ */
-  var FILM = [
+  /* The ten episodes were written in here when the section was built, which
+     left the control room's Eagle's Cast screen with nothing to list. They are
+     kept as the first paint — the cards are in the HTML for a crawler and for
+     anyone without JavaScript — and replaced by the live rows the moment they
+     arrive, so from then on an episode is added, reordered or retired in one
+     place. */
+  var FILM = (window.CO_DATA && window.CO_DATA.EPISODES && window.CO_DATA.EPISODES.length)
+    ? window.CO_DATA.EPISODES
+    : [
     {
         "t": "Episode 01",
         "m": "15 sec",
@@ -14922,7 +14910,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ---- the stream deck ----
-     Lifted clear of the faculty step: the four routes sit on the home page
+     Lifted clear of the faculty step: the three routes sit on the home page
      and the roster on its own, so the deck has to wire itself whether or
      not the finder exists beside it. */
   co.step("stream deck", function () {
