@@ -176,6 +176,23 @@
     }).catch(function (e) { return { n: null, err: String(e.message || e) }; });
   }
 
+  /* Not everything arrives as an array. SUBJECTS is a map keyed by subject
+     name; SYLLABUS is a map of subject to lesson list. Counting those as "one
+     object" reported 130 lessons as 1 and made a healthy section look broken,
+     which is precisely the kind of false alarm that gets a checking tool
+     ignored. Count what is actually in them. */
+  function measure(v) {
+    if (v == null) return 0;
+    if (Array.isArray(v)) return v.length;
+    if (typeof v !== "object") return 1;
+    var keys = Object.keys(v);
+    var total = 0, nested = false;
+    keys.forEach(function (k) {
+      if (Array.isArray(v[k])) { total += v[k].length; nested = true; }
+    });
+    return nested ? total : keys.length;
+  }
+
   function pill(state, text) {
     return '<span class="p ' + state + '">' + text + "</span>";
   }
@@ -183,9 +200,7 @@
   function row(s, db, data, drawn) {
     var fetched = db.err !== "no such table" && db.n !== null;
     var mapped  = s.key && window.CO_DATA && window.CO_DATA[s.key] !== undefined;
-    var count   = mapped ? (Array.isArray(window.CO_DATA[s.key])
-                    ? window.CO_DATA[s.key].length
-                    : (window.CO_DATA[s.key] ? 1 : 0)) : null;
+    var count   = mapped ? measure(window.CO_DATA[s.key]) : null;
 
     var verdict, note;
     if (db.err === "no such table") {
