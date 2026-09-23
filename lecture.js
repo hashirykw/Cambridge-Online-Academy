@@ -1,4 +1,3 @@
-
 /* ==========================================================================
    CAMBRIDGE ONLINE — data
    Faculty roster as supplied. Campus details from Google Places.
@@ -437,21 +436,19 @@ function sameTopic(a, b){
    restates the free one is dropped, and the lists carry two spare topics each
    so the course still runs to eight paid lectures after the drop. */
 function courseOf(t){
-  var d = t.demo || {};
-  var free = d.title || "Demo lesson";
-  var key = (SUBJECTS[t.subject] || {}).key || "math";
-  var paid = (SYLLABUS[key] || SYLLABUS.math).filter(function (p) {
-    return !sameTopic(p[0], free);
-  }).slice(0, 8);
+  /* One lecture per teacher: their own free one.
 
-  var out = [{ n: 1, title: free, mins: d.mins || 14, code: d.code || "", free: true, url: d.url || d.video || "" }];
-  paid.forEach(function (p, i) {
-    /* A syllabus row is free only when the backend marks it free and gives
-       it a video (config.js passes both through as p[2] and p[3]). */
-    var isFree = !!p[2] && !!p[3];
-    out.push({ n: i + 2, title: p[0], mins: p[1], code: d.code || "", free: isFree, url: p[3] || "" });
-  });
-  return out;
+     This used to return the free lecture plus eight "paid" topics lifted off
+     the subject syllabus — lessons nobody had recorded, named as if they
+     existed. The lecture page already refused to list them and showed a line
+     about the paid course instead, but the teacher popup still counted them,
+     so a teacher with one recording advertised nine lectures.
+
+     The paid course is taught through the WhatsApp Community, not here, and
+     its lessons are not named on this site. */
+  var d = t.demo || {};
+  return [{ n: 1, title: d.title || "Demo lesson", mins: d.mins || 14,
+            code: d.code || "", free: true }];
 }
 
 /* Total teaching time across the course, in whole hours and minutes. */
