@@ -158,8 +158,12 @@
 
   /* Ask for zero rows and read the count out of the Content-Range header —
      cheaper than pulling the table just to measure it. */
+  /* select=* rather than select=id: not every table has an id column —
+     settings is keyed by `key` — and asking for one returns HTTP 400, which
+     the check then reported as a row-level-security problem. A misdiagnosis
+     is worse than no diagnosis. */
   function countRows(table) {
-    return fetch(REST + table + "?select=id&limit=1", {
+    return fetch(REST + table + "?select=*&limit=1", {
       headers: Object.assign({ Prefer: "count=exact" }, HEAD)
     }).then(function (r) {
       if (!r.ok) return { n: null, err: r.status === 404 ? "no such table" : ("HTTP " + r.status) };
@@ -169,7 +173,7 @@
       /* The header is there but unreadable — it needs to be exposed to the
          browser, and anything sitting in front of Supabase may strip it.
          Count the rows instead rather than reporting a blank. */
-      return fetch(REST + table + "?select=id", { headers: HEAD })
+      return fetch(REST + table + "?select=*", { headers: HEAD })
         .then(function (r2) { return r2.ok ? r2.json() : []; })
         .then(function (rows) { return { n: rows.length, err: null }; })
         .catch(function () { return { n: null, err: "could not count" }; });
