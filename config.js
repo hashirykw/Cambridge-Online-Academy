@@ -152,6 +152,35 @@
                subjects: s.subjects || [], chip: s.chip, icon: s.icon };
     });
 
+    /* Eagle's Cast. The deck was built with its ten episodes written into the
+       page, so the control room's Eagle's Cast screen had nothing to list.
+       Reading them from here makes that screen the place an episode is added,
+       removed or reordered.
+
+       focus is where the speaker's face sits in the cover, as [x%, y%]. A card
+       is portrait and a cover is wide, so without it the crop lands on
+       whatever happens to be in the middle of the frame — usually the
+       microphone. A missing title falls back to the episode number rather than
+       to an invented one. */
+    out.EPISODES = (raw.episodes || []).map(function (e, i) {
+      var n = String(e.number || (i + 1));
+      if (n.length < 2) n = "0" + n;
+      var secs = e.seconds || 0;
+      var rt = secs < 60
+        ? secs + " sec"
+        : (secs % 60 ? Math.floor(secs / 60) + " min " + (secs % 60) + " sec"
+                     : Math.floor(secs / 60) + " min");
+      return {
+        t: e.title || ("Episode " + n),
+        m: e.guests || rt,
+        set: e.set_name || "SWK Chronicles",
+        poster: e.poster_url || "",
+        src: e.video_url || "",
+        focus: [e.focal_x == null ? 50 : e.focal_x,
+                e.focal_y == null ? 42 : e.focal_y]
+      };
+    }).filter(function (e) { return e.src; });
+
     out.SETTINGS = {};
     (raw.settings || []).forEach(function (r) { out.SETTINGS[r.key] = r.value || {}; });
 
@@ -179,6 +208,7 @@
       get("faqs?select=*&active=eq.true&order=sort"),
       get("ads?select=*&active=eq.true&order=sort"),
       get("streams?select=*&active=eq.true&order=sort"),
+      get("episodes?select=*&active=eq.true&order=sort,number"),
       get("settings?select=*"),
       get("promos?select=*&active=eq.true&order=sort" +
           "&or=(starts_at.is.null,starts_at.lte." + now + ")" +
@@ -187,7 +217,7 @@
       return shape({
         subjects: r[0], groups: r[1], faculty: r[2], campuses: r[3],
         syllabus: r[4], reviews: r[5], faqs: r[6], ads: r[7],
-        streams: r[8], settings: r[9], promos: r[10]
+        streams: r[8], episodes: r[9], settings: r[10], promos: r[11]
       });
     });
   }
