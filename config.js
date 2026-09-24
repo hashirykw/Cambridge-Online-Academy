@@ -221,7 +221,43 @@
     out.SETTINGS = {};
     (raw.settings || []).forEach(function (r) { out.SETTINGS[r.key] = r.value || {}; });
 
-    out.PROMO = (raw.promos || [])[0] || null;
+    /* Discounts. Previously this took the first row and handed it over as
+       PROMO, which no page ever read — the whole screen wrote to a key nothing
+       consumed. Each row carries its own `placement`, so the panel has always
+       decided where an offer belongs; the page just never asked.
+
+         ribbon  a bar across the top of the page
+         notice  takes over the admissions modal
+         ad      joins the corner card rotation
+         hero    a line under the hero headline
+
+       The window is applied here. A discount with no dates runs until it is
+       switched off; one with dates runs between them and then stops on its
+       own, which is the point of scheduling it rather than remembering to. */
+    out.PROMOS = (raw.promos || []).filter(function (r) {
+      if (!r.active) return false;
+      if (r.starts_at && new Date(r.starts_at).getTime() > nowMs) return false;
+      if (r.ends_at   && new Date(r.ends_at).getTime()   < nowMs) return false;
+      return true;
+    }).map(function (r) {
+      return {
+        id: r.id, kicker: r.kicker || "", headline: r.headline || "",
+        body: r.body || "", code: r.code || "",
+        percent: r.percent == null ? null : +r.percent,
+        theme: r.theme || "gold",
+        placement: r.placement || "ribbon",
+        cta: r.cta_label || "", href: r.cta_href || "#contact",
+        sort: r.sort || 0
+      };
+    }).sort(function (a, b) { return a.sort - b.sort; });
+
+    /* One per placement: two ribbons at once is not a design, it is a bug. */
+    out.PROMO_AT = {};
+    out.PROMOS.forEach(function (r) {
+      if (!out.PROMO_AT[r.placement]) out.PROMO_AT[r.placement] = r;
+    });
+
+    out.PROMO = out.PROMOS[0] || null;
 
     return out;
   }
