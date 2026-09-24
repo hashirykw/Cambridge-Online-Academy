@@ -10515,9 +10515,9 @@ body::after{
     <button class="nx__x" type="button" data-nxclose aria-label="Close this notice">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
-    <p class="nx__tag"><i aria-hidden="true"></i>Admissions notice</p>
+    <p class="nx__tag"><i aria-hidden="true"></i><span id="nxTag">Admissions notice</span></p>
     <h3 id="nxTtl">Entries Close for <span id="nxSeries">the next series</span></h3>
-    <p>Cambridge closes entry roughly four months before the first paper. Enrol before the date below and admissions can still place you with a teacher for this series — after it, the next available sitting is the following one.</p>
+    <p id="nxBody">Cambridge closes entry roughly four months before the first paper. Enrol before the date below and admissions can still place you with a teacher for this series — after it, the next available sitting is the following one.</p>
 
     <div class="nx__cd" id="nxCd" role="timer" aria-label="Time remaining before entries close">
       <div><b>—</b><span>Days</span></div>
@@ -12826,7 +12826,42 @@ function fmtTime(s){
       return runs[runs.length - 1];
     }
 
+    /* The control room wins where it has something to say, and the rolling
+       calculation below is what happens when it does not.
+
+       Those two February and July dates are a reasonable guess at Cambridge's
+       calendar and they roll forward on their own, which is why nobody noticed
+       they were guesses. But a deadline the academy cannot move without a
+       deploy is a deadline that will be wrong at exactly the moment it
+       matters. A row in `popups` with countdown_to set overrides it. */
+    var pop = (window.CO_DATA && window.CO_DATA.POPUPS
+               && window.CO_DATA.POPUPS.admissions_ribbon) || null;
+    if (pop && !pop.live) pop = null;
+
     var run = series(), close = run[0];
+
+    if (pop) {
+      if (pop.countdownTo) {
+        var over = new Date(pop.countdownTo);
+        if (!isNaN(over.getTime())) close = over;
+      }
+      var tag = host.querySelector("#nxTag");
+      var ttl = host.querySelector("#nxTtl");
+      var bod = host.querySelector("#nxBody");
+      if (tag && pop.title) tag.textContent = pop.title;
+      /* Only replace the heading wholesale when the panel supplies one —
+         otherwise the series span it contains would be thrown away. */
+      if (ttl && pop.icon === "heading" && pop.body) ttl.textContent = pop.body;
+      else if (bod && pop.body) bod.textContent = pop.body;
+      if (pop.cta) {
+        var go = host.querySelector(".nx__go, [data-nxgo]");
+        if (go) {
+          go.textContent = pop.cta;
+          if (pop.href) go.setAttribute("href", pop.href);
+        }
+      }
+    }
+
     var cd = host.querySelector("#nxCd");
 
     function tick() {
@@ -12854,6 +12889,9 @@ function fmtTime(s){
     if (pap) pap.textContent = "from " + run[2];
     var dl = host.querySelector("#nxClose");
     if (dl) {
+      /* `close` may have been overridden above, so this reads from it rather
+         than from run[0] — otherwise the counter and the date beneath it would
+         disagree, which is worse than either being wrong alone. */
       dl.textContent = close.toLocaleDateString("en-GB",
         { day: "numeric", month: "long", year: "numeric" });
     }
@@ -16396,6 +16434,15 @@ document.addEventListener("DOMContentLoaded", function () {
   function build() {
     if (answered()) return;
 
+    /* The wording is the academy's to change, not something that should need a
+       deploy. A `cookie_banner` row supplies the heading, the body and the two
+       button labels; switching the row off removes the bar entirely, which is
+       the right lever for a site that may not need one in every market. */
+    var cp = (window.CO_DATA && window.CO_DATA.POPUPS
+              && window.CO_DATA.POPUPS.cookie_banner) || null;
+    if (cp && !cp.live) return;   /* deliberately switched off */
+    /* no row at all: the built-in bar stands */
+
     var el = document.createElement("aside");
     el.className = "ck";
     el.setAttribute("role", "complementary");
@@ -16407,12 +16454,15 @@ document.addEventListener("DOMContentLoaded", function () {
           '<path d="M20.8 11.5A8.8 8.8 0 1 1 12.5 3.2a5 5 0 0 0 7.1 6.6c.1.5.2 1.1.2 1.7Z"/>' +
           '<circle cx="9.2" cy="10.4" r="1"/><circle cx="13.4" cy="15.2" r="1"/>' +
           '<circle cx="8.4" cy="15.6" r="1"/></svg>' +
-        'Cookies</p>' +
-      '<p>We keep your theme and sound settings on this device, plus a cached copy ' +
+        ((cp && cp.title) || "Cookies") + "</p>" +
+      "<p>" + ((cp && cp.body) ||
+        'We keep your theme and sound settings on this device, plus a cached copy ' +
         'of the faculty list so the page opens quickly. Nothing is sold and nothing ' +
-        'follows you off this site. <a href="#contact">Questions to admissions.</a></p>' +
+        'follows you off this site.') +
+        ' <a href="' + ((cp && cp.href) || "#contact") + '">Questions to admissions.</a></p>' +
       '<div class="ck__row">' +
-        '<button class="ck__b ck__b--y" type="button" data-ck="yes">That\u2019s fine</button>' +
+        '<button class="ck__b ck__b--y" type="button" data-ck="yes">' +
+          ((cp && cp.cta) || "That\u2019s fine") + "</button>" +
         '<button class="ck__b" type="button" data-ck="no">Essential only</button>' +
       '</div>';
 
