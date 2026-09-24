@@ -7365,6 +7365,86 @@ body:has(.ck) .hon__ledger{padding-bottom:clamp(0px,1vw,10px)}
   .hdlg__box{width:100%;max-height:92vh}
 }
 
+
+/* ═══════════════════════════ THE DISCOUNT RIBBON ═══════════════════════════
+   A bar across the top for a running offer. Pinned rather than scrolling
+   away: an offer that has to be scrolled back to find is one nobody acts on.
+
+   It pushes the page down instead of floating over it. Floating would have
+   meant either covering the header or teaching the header to dodge it, and
+   both go wrong on a phone in landscape. The colour is the theme the panel
+   chose, used as a tint over the page's own surface rather than as a flat
+   fill, so a ruby discount still looks like this site and not like a
+   supermarket. */
+/* The header is position:fixed, so a ribbon in normal flow ends up behind it
+   with only the dismiss button peeking out. Fixing the ribbon too and pushing
+   both the header and the page down by its height keeps the two stacked in
+   the order a reader expects, and keeps the header's hide-on-scroll working
+   — it just hides to a lower starting point. */
+.pr{
+  position:fixed;top:0;left:0;right:0;z-index:70;display:none;
+  padding:calc(9px + env(safe-area-inset-top,0px)) clamp(16px,4vw,30px) 9px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--pr-acc) 22%, transparent),
+                           color-mix(in srgb, var(--pr-acc) 9%, transparent)),
+    var(--bg-2);
+  border-bottom:1px solid color-mix(in srgb, var(--pr-acc) 40%, var(--line));
+}
+.pr.on{display:block}
+html.has-pr .hdr{top:var(--pr-h,0px)}
+html.has-pr body{padding-top:var(--pr-h,0px)}
+.pr__in{
+  max-width:var(--wrap);margin-inline:auto;
+  display:flex;align-items:center;justify-content:center;gap:10px 18px;
+  flex-wrap:wrap;text-align:center;
+}
+.pr__k{
+  font-family:var(--sans);font-size:10.5px;font-weight:600;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--pr-acc);white-space:nowrap;
+}
+.pr__h{
+  font-family:var(--sans);font-size:clamp(13px,1.5vw,14.5px);font-weight:500;
+  color:var(--text-1);margin:0;
+}
+.pr__code{
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;
+  letter-spacing:.09em;padding:4px 10px;border-radius:6px;
+  border:1px dashed color-mix(in srgb, var(--pr-acc) 55%, var(--line));
+  color:var(--pr-acc);white-space:nowrap;
+}
+.pr__go{
+  font-family:var(--sans);font-size:12.5px;font-weight:600;white-space:nowrap;
+  color:var(--pr-acc);text-decoration:none;border-bottom:1px solid currentColor;
+  padding-bottom:1px;
+}
+.pr__go:hover{opacity:.78}
+.pr__x{
+  position:absolute;top:50%;right:clamp(10px,3vw,20px);transform:translateY(-50%);
+  width:26px;height:26px;border:0;background:transparent;cursor:pointer;
+  color:var(--text-3);line-height:0;
+}
+.pr__x:hover{color:var(--text-1)}
+.pr__x svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+@media (max-width:640px){
+  .pr__in{gap:7px 12px}
+  .pr{padding-right:42px}
+}
+
+/* The hero line. Deliberately quiet — it sits under a headline that is doing
+   the work, and an offer shouting over it would cost more than it earns. */
+.pr-hero{
+  display:none;margin:16px 0 0;font-family:var(--sans);
+  font-size:clamp(12.5px,1.4vw,13.5px);color:var(--text-2);
+}
+.pr-hero.on{display:block}
+.pr-hero b{color:var(--pr-acc);font-weight:600}
+.pr-hero code{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;
+  padding:2px 7px;border-radius:5px;margin-left:4px;
+  border:1px dashed color-mix(in srgb, var(--pr-acc) 50%, var(--line));
+  color:var(--pr-acc);
+}
+
 /* ═══════════════════════════ THE COOKIE BAR ════════════════════════
    Sits at the bottom left rather than across the full width: the promo ribbon
    already owns the full-width bottom slot, and two stacked full-width bars is
@@ -8641,6 +8721,18 @@ body::after{
 <div id="prog"></div>
 
 <div class="base">
+<aside class="pr" id="pr" hidden aria-label="Current offer">
+  <div class="pr__in">
+    <span class="pr__k" id="prK"></span>
+    <p class="pr__h" id="prH"></p>
+    <span class="pr__code" id="prCode" hidden></span>
+    <a class="pr__go" id="prGo" href="#contact"></a>
+  </div>
+  <button class="pr__x" type="button" id="prX" aria-label="Dismiss this offer">
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11"/></svg>
+  </button>
+</aside>
+
 <header class="hdr">
   <div class="hdr__in">
     <a class="logo" href="#home">
@@ -8717,6 +8809,7 @@ body::after{
       <span class="rise"><span>Now <em>Wherever You Are</em></span></span>
     </h1>
     <p class="lede fadeup">The same teachers trusted by students across <a class="ilink" href="/about#swk">SWK’s</a> campuses — now teaching live, wherever you are in the world.</p>
+    <p class="pr-hero" id="prHero" hidden></p>
     <p class="hero__levels fadeup fadeup--2"><b>O Level</b> <i>•</i> <b>IGCSE</b> <i>•</i> <b>AS &amp; A Level</b></p>
     <div class="hero__cta fadeup fadeup--2">
       <button class="btn btn--liquid" type="button" data-pick aria-haspopup="dialog" aria-controls="pickdlg"><svg class="btn__trace" aria-hidden="true"><rect pathLength="100"/></svg><span class="btn__lq">
@@ -12806,6 +12899,102 @@ function fmtTime(s){
      February, October/November entries close in July — so the notice works
      out which series is next from the date rather than being hard-coded to
      one that goes stale in March. */
+
+  /* ══════════════════════════════ THE DISCOUNTS ═════════════════════════════
+     The Discounts screen wrote to a key no page read, so an offer could be
+     created, scheduled, given a code and switched live while the site showed
+     nothing. Each row already names its own placement; this is the page
+     finally honouring it.
+
+     A dismissed ribbon stays gone for a day rather than for ever: an offer
+     that runs a fortnight should get a second chance at somebody who waved it
+     away on day one, and one that is never dismissible is an advert, not a
+     notice. */
+  var PROMO_THEME = {
+    gold: "#C9982F", emerald: "#5FD1A3", ruby: "#E06A6A", ice: "#7FC4E8",
+    violet: "#B79BF0", amber: "#F0B95F", mono: "#8E8E8E"
+  };
+  var PROMO_SNOOZE = 24 * 60 * 60 * 1000;
+
+  function promoAt(where) {
+    var m = window.CO_DATA && window.CO_DATA.PROMO_AT;
+    return (m && m[where]) || null;
+  }
+
+  function promoLine(p) {
+    /* The headline is the offer. The percentage is only added when the
+       headline has not already said it, which it usually has. */
+    var h = p.headline || "";
+    if (p.percent && h.indexOf("%") < 0 && !/percent/i.test(h)) {
+      h = p.percent + "% — " + h;
+    }
+    return h;
+  }
+
+  function initPromoRibbon() {
+    var p = promoAt("ribbon");
+    var el = document.getElementById("pr");
+    if (!el || !p) return;
+
+    var KEY = "co-pr-" + (p.code || p.headline || "x").slice(0, 24);
+    try {
+      var was = +localStorage.getItem(KEY);
+      if (was && Date.now() - was < PROMO_SNOOZE) return;
+    } catch (e) {}
+
+    el.style.setProperty("--pr-acc", PROMO_THEME[p.theme] || PROMO_THEME.gold);
+    var k = document.getElementById("prK");
+    var h = document.getElementById("prH");
+    var c = document.getElementById("prCode");
+    var g = document.getElementById("prGo");
+
+    if (k) k.textContent = p.kicker || "Offer";
+    if (h) h.textContent = promoLine(p);
+    if (c) {
+      if (p.code) { c.textContent = p.code; c.hidden = false; }
+      else c.hidden = true;
+    }
+    if (g) {
+      if (p.cta) { g.textContent = p.cta; g.setAttribute("href", p.href || "#contact"); }
+      else g.style.display = "none";
+    }
+
+    el.hidden = false;
+    el.classList.add("on");
+
+    /* Measured rather than assumed: the bar wraps to two lines on a narrow
+       screen and a hardcoded height would leave the header overlapping it
+       exactly where there is least room to spare. */
+    function measure() {
+      document.documentElement.style.setProperty(
+        "--pr-h", Math.ceil(el.getBoundingClientRect().height) + "px");
+    }
+    document.documentElement.classList.add("has-pr");
+    measure();
+    addEventListener("resize", measure);
+
+    var x = document.getElementById("prX");
+    if (x) x.onclick = function () {
+      el.classList.remove("on");
+      el.hidden = true;
+      document.documentElement.classList.remove("has-pr");
+      document.documentElement.style.removeProperty("--pr-h");
+      try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+    };
+  }
+
+  function initPromoHero() {
+    var p = promoAt("hero");
+    var el = document.getElementById("prHero");
+    if (!el || !p) return;
+    el.style.setProperty("--pr-acc", PROMO_THEME[p.theme] || PROMO_THEME.gold);
+    el.innerHTML = "<b>" + __co.esc(p.kicker || "Offer") + "</b> · " +
+      __co.esc(promoLine(p)) +
+      (p.code ? " <code>" + __co.esc(p.code) + "</code>" : "");
+    el.hidden = false;
+    el.classList.add("on");
+  }
+
   function initNotice() {
     var host = document.getElementById("nx");
     if (!host) return;
@@ -12837,6 +13026,23 @@ function fmtTime(s){
     var pop = (window.CO_DATA && window.CO_DATA.POPUPS
                && window.CO_DATA.POPUPS.admissions_ribbon) || null;
     if (pop && !pop.live) pop = null;
+
+    /* A discount set to "notice" speaks over the entry deadline. It replaces
+       the wording only, never the countdown: the deadline is the more
+       important of the two messages and a reader still needs to see how long
+       they have. Applied before the popup row below, so a popup that has
+       something to say still wins the heading. */
+    var noticePromo = (typeof promoAt === "function") ? promoAt("notice") : null;
+    if (noticePromo) {
+      var nTag = host.querySelector("#nxTag");
+      var nBod = host.querySelector("#nxBody");
+      if (nTag) nTag.textContent = noticePromo.kicker || "Offer";
+      if (nBod) {
+        nBod.textContent = promoLine(noticePromo) +
+          (noticePromo.body ? " " + noticePromo.body : "") +
+          (noticePromo.code ? " Quote " + noticePromo.code + " when you enquire." : "");
+      }
+    }
 
     var run = series(), close = run[0];
 
@@ -13051,8 +13257,26 @@ function fmtTime(s){
       }
     ];
     /* Backend first; the list above is the fallback the page ships with. */
-    var STOCK = (window.CO_DATA && window.CO_DATA.STOCK && (window.CO_DATA.STOCK.length || Object.keys(window.CO_DATA.STOCK).length))
-      ? window.CO_DATA.STOCK : STOCK_BAKED;
+    var STOCK = ((window.CO_DATA && window.CO_DATA.STOCK && (window.CO_DATA.STOCK.length || Object.keys(window.CO_DATA.STOCK).length))
+      ? window.CO_DATA.STOCK : STOCK_BAKED).slice();
+
+    /* A discount set to "ad" joins this rotation, at the front. It goes first
+       because the rotation only ever shows two cards before leaving the reader
+       alone, so anything appended would usually never be seen. Copied with
+       slice() so the offer is not pushed into CO_DATA itself, which would make
+       it multiply every time this runs. */
+    var adPromo = (typeof promoAt === "function") ? promoAt("ad") : null;
+    if (adPromo) {
+      STOCK.unshift({
+        k: adPromo.kicker || "Offer",
+        acc: PROMO_THEME[adPromo.theme] || PROMO_THEME.gold,
+        h: promoLine(adPromo),
+        p: adPromo.body || "",
+        cta: adPromo.cta || "Talk to admissions",
+        href: adPromo.href || "#contact",
+        ic: "tag"
+      });
+    }
 
     var ICONS = {
       play:  '<path d="M8 5.2v13.6L19 12 8 5.2Z" fill="currentColor" stroke="none"/>',
@@ -13060,7 +13284,10 @@ function fmtTime(s){
       chat:  '<path d="M21 11.6a8.4 8.4 0 0 1-12.1 7.5L3.5 20.5l1.5-5A8.4 8.4 0 1 1 21 11.6Z"/>',
       pin:   '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.6"/>',
       cap:   '<path d="M12 4 2.5 9 12 14l9.5-5L12 4Z"/><path d="M6.5 11.4V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-4.6"/>',
-      clock: '<circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2"/>'
+      clock: '<circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 2"/>',
+      /* For a discount card. Borrowing one of the others would have been
+         quicker and would have put a graduation cap on a price cut. */
+      tag:   '<path d="M3.5 12.4V4.6a1 1 0 0 1 1-1h7.8a1 1 0 0 1 .7.3l7 7a1 1 0 0 1 0 1.4l-7.8 7.8a1 1 0 0 1-1.4 0l-7-7a1 1 0 0 1-.3-.7Z"/><circle cx="8" cy="8" r="1.5"/>'
     };
 
     function make(a, where) {
@@ -13777,7 +14004,7 @@ function fmtTime(s){
   }
 
   function boot() {
-    [initTheme, initSound, initPreloader, initChrome, initSpy, initWheel, initDial, renderStreams, initTrio,
+    [initTheme, initSound, initPreloader, initChrome, initSpy, initWheel, initDial, renderStreams, initTrio, initPromoRibbon, initPromoHero,
      initCounters, initLiquid, initTouchHover, initPaneGlow, initDockYield,
      Scroller.enable].forEach(function (fn) {
       try { fn(); } catch (e) { if (window.console) console.warn("[co]", e); }
