@@ -270,7 +270,6 @@
   }
 
   function fetchAll() {
-    var now = new Date().toISOString();
     return Promise.all([
       get("subjects?select=*&active=eq.true&order=sort"),
       get("groups?select=*&active=eq.true&order=sort"),
@@ -284,9 +283,13 @@
       get("episodes?select=*&active=eq.true&order=sort,number"),
       get("popups?select=*&order=priority.desc"),
       get("settings?select=*"),
-      get("promos?select=*&active=eq.true&order=sort" +
-          "&or=(starts_at.is.null,starts_at.lte." + now + ")" +
-          "&or=(ends_at.is.null,ends_at.gte." + now + ")")
+      /* Just the active ones, ordered. The date window used to be two `or=`
+         parameters on this URL, which is a query with the same key twice —
+         one of the two is dropped, and which one is not something to rely on.
+         The window is applied in shape() instead, where it is one readable
+         condition and where the row can still be handed over with a flag
+         rather than silently vanishing. */
+      get("promos?select=*&active=eq.true&order=sort")
     ]).then(function (r) {
       return shape({
         subjects: r[0], groups: r[1], faculty: r[2], campuses: r[3],
