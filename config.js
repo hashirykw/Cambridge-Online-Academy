@@ -181,6 +181,43 @@
       };
     }).filter(function (e) { return e.src; });
 
+    /* Popups, keyed so the page can ask for one by name rather than hunting
+       through a list. Every banner, ribbon and dialog used to be written into
+       the page with its dates computed in JavaScript, so moving an entry
+       deadline meant editing and redeploying a file.
+
+       The window is applied here rather than in the page: a popup that has not
+       started or has already ended simply is not handed over, so nothing on
+       the page has to remember to check. `active` is the switch; starts_at and
+       ends_at are the schedule; either can be left empty. */
+    out.POPUPS = {};
+    var nowMs = Date.now();
+    (raw.popups || []).forEach(function (p) {
+      /* Every row is handed over, switched off ones included, with `live`
+         saying whether it should show right now.
+
+         Filtering them out here looked tidier and was wrong: the page could
+         then not tell "no row was ever created" from "the row is switched
+         off", and it has to. A missing cookie row means nobody has configured
+         one yet and the built-in bar should stand; a row switched off means
+         the academy decided against it. Silently dropping a consent notice
+         because a table is empty is not a default worth having. */
+      out.POPUPS[p.key] = {
+        key: p.key, kind: p.kind,
+        title: p.title || "", body: p.body || "",
+        cta: p.cta_label || "", href: p.cta_href || "",
+        accent: p.accent || "", icon: p.icon || "",
+        dismissible: p.dismissible !== false,
+        repeatAfter: p.repeat_after == null ? null : +p.repeat_after,
+        pages: p.pages || [],
+        countdownTo: p.countdown_to || null,
+        priority: p.priority || 0,
+        live: !!p.active
+                && !(p.starts_at && new Date(p.starts_at).getTime() > nowMs)
+                && !(p.ends_at   && new Date(p.ends_at).getTime()   < nowMs)
+      };
+    });
+
     out.SETTINGS = {};
     (raw.settings || []).forEach(function (r) { out.SETTINGS[r.key] = r.value || {}; });
 
@@ -209,6 +246,7 @@
       get("ads?select=*&active=eq.true&order=sort"),
       get("streams?select=*&active=eq.true&order=sort"),
       get("episodes?select=*&active=eq.true&order=sort,number"),
+      get("popups?select=*&order=priority.desc"),
       get("settings?select=*"),
       get("promos?select=*&active=eq.true&order=sort" +
           "&or=(starts_at.is.null,starts_at.lte." + now + ")" +
@@ -217,7 +255,7 @@
       return shape({
         subjects: r[0], groups: r[1], faculty: r[2], campuses: r[3],
         syllabus: r[4], reviews: r[5], faqs: r[6], ads: r[7],
-        streams: r[8], episodes: r[9], settings: r[10], promos: r[11]
+        streams: r[8], episodes: r[9], popups: r[10], settings: r[11], promos: r[12]
       });
     });
   }
