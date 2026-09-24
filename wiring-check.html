@@ -227,7 +227,9 @@
       note = "The table has rows but config.js does not turn it into CO_DATA." + s.key + ".";
     } else if (db.n > 0 && count === 0) {
       verdict = pill("bad", "EMPTY");
-      note = db.n + " rows in the table, none in CO_DATA. Usually every row has active = false, or a filter is dropping them.";
+      note = db.n + " row" + (db.n === 1 ? "" : "s") + " in the table, none reaching the page. " +
+             "Most often the row is still a draft — switch it on in the panel. " +
+             "Otherwise its start date is in the future, its end date has passed, or a filter is dropping it.";
     } else if (s.dom && drawn === 0 && count > 0) {
       verdict = pill("bad", "NOT DRAWN");
       note = count + " rows reached the page and nothing was rendered. The data arrives; the section ignores it.";
