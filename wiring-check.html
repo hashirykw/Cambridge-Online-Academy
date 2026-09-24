@@ -134,14 +134,10 @@
       key: "STOCK",    dom: null },
     { name: "Eagle's Cast",   screen: "Eagle's Cast",       table: "episodes",
       key: "EPISODES", dom: "#filmwall .fw__card" },
-    /* Mapped into CO_DATA, but no page reads the key. Fetching it is not the
-       same as using it, and "the data arrived" would be a misleading pass. */
     { name: "Discounts",      screen: "Discounts",          table: "promos",
-      key: "PROMO",    dom: null, unused: true,
-      why: "config.js maps CO_DATA.PROMO, but no page reads it — the ribbon on the site is not driven by this screen." },
+      key: "PROMOS",   dom: null },
     { name: "Popups",         screen: "Popups & notices",   table: "popups",
-      key: null,       dom: null, unused: true,
-      why: "config.js does not fetch this table, and the admissions notice computes its own dates in the page." },
+      key: "POPUPS",   dom: null },
     { name: "Settings",       screen: "Settings",           table: "settings",
       key: "SETTINGS", dom: null }
   ];
@@ -324,7 +320,13 @@
         var drawn = (s.dom && doc) ? doc.querySelectorAll(s.dom).length : null;
         return row(s, dbs[i], null, drawn);
       }).join("");
-      render(rows, typeof window.CO_REFRESH === "function");
+      /* CO_REFRESH lives on the homepage, not on this page — this document
+         loads config.js but never index.html's script, so asking its own
+         window would always answer "missing" and report a working site as
+         broken. Ask the frame that actually ran the page. */
+      var frameWin = null;
+      try { frameWin = doc && doc.defaultView; } catch (e) {}
+      render(rows, !!(frameWin && typeof frameWin.CO_REFRESH === "function"));
       [].forEach.call(btns, function (b) { b.disabled = false; });
     });
   }
