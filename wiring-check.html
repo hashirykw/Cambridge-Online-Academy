@@ -158,6 +158,18 @@
      settings is keyed by `key` — and asking for one returns HTTP 400, which
      the check then reported as a row-level-security problem. A misdiagnosis
      is worse than no diagnosis. */
+  /* How many rows are switched on, as opposed to how many exist. Without this
+     the check cannot tell a section that is broken from one that is simply
+     switched off, and it called a deliberate draft a failure — which is how a
+     checking tool teaches you to ignore it. Tables with no `active` column
+     answer null and are judged on the total alone. */
+  function liveCount(table) {
+    return fetch(REST + table + "?select=*&active=eq.true", { headers: HEAD })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (rows) { return rows ? rows.length : null; })
+      .catch(function () { return null; });
+  }
+
   function countRows(table) {
     return fetch(REST + table + "?select=*&limit=1", {
       headers: Object.assign({ Prefer: "count=exact" }, HEAD)
@@ -165,14 +177,22 @@
       if (!r.ok) return { n: null, err: r.status === 404 ? "no such table" : ("HTTP " + r.status) };
       var cr = r.headers.get("content-range") || "";
       var m = cr.match(/\/(\d+)$/);
-      if (m) return { n: +m[1], err: null };
+      if (m) return liveCount(table).then(function (live) {
+        return { n: +m[1], live: live, err: null };
+      });
       /* The header is there but unreadable — it needs to be exposed to the
          browser, and anything sitting in front of Supabase may strip it.
          Count the rows instead rather than reporting a blank. */
       return fetch(REST + table + "?select=*", { headers: HEAD })
         .then(function (r2) { return r2.ok ? r2.json() : []; })
-        .then(function (rows) { return { n: rows.length, err: null }; })
-        .catch(function () { return { n: null, err: "could not count" }; });
+        .then(function (rows) {
+          /* The live count matters on this path too — without it a table of
+             drafts reads as a failure rather than as switched off. */
+          return liveCount(table).then(function (live) {
+            return { n: rows.length, live: live, err: null };
+          });
+        })
+        .catch(function () { return { n: null, live: null, err: "could not count" }; });
     }).catch(function (e) { return { n: null, err: String(e.message || e) }; });
   }
 
@@ -225,11 +245,22 @@
     } else if (!mapped) {
       verdict = pill("bad", "NOT FETCHED");
       note = "The table has rows but config.js does not turn it into CO_DATA." + s.key + ".";
+    } else if (db.n > 0 && count === 0 && db.live === 0) {
+      verdict = pill("skip", "OFF");
+      note = "Nothing switched on. " + db.n + " row" + (db.n === 1 ? " is a draft" : "s are drafts") +
+             ", so the site shows nothing — which is correct if that is what you intended. " +
+             "Switch one on in the panel when you want it live.";
+      return "<tr>" +
+        '<td class="sec">' + esc(s.name) + '<br><span class="quiet">' + esc(s.screen) + "</span></td>" +
+        '<td class="n">' + db.n + "</td>" +
+        '<td class="n">0</td>' +
+        '<td class="n"><span class="quiet">n/a</span></td>' +
+        "<td>" + verdict + "</td>" +
+        '<td class="note">' + note + "</td></tr>";
     } else if (db.n > 0 && count === 0) {
       verdict = pill("bad", "EMPTY");
-      note = db.n + " row" + (db.n === 1 ? "" : "s") + " in the table, none reaching the page. " +
-             "Most often the row is still a draft — switch it on in the panel. " +
-             "Otherwise its start date is in the future, its end date has passed, or a filter is dropping it.";
+      note = db.n + " row" + (db.n === 1 ? " is" : "s are") + " switched on but none reach the page. " +
+             "A start date in the future, an end date already passed, or a filter dropping them.";
     } else if (s.dom && drawn === 0 && count > 0) {
       verdict = pill("bad", "NOT DRAWN");
       note = count + " rows reached the page and nothing was rendered. The data arrives; the section ignores it.";
