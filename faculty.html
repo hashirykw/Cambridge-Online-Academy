@@ -11745,6 +11745,13 @@ function fmtTime(s){
   };
   window.renderFaculty = renderFaculty;
 
+  /* This page had no refresh hook at all, so config.js updated CO_DATA and the
+     roster kept whatever it drew on load — the baked list, on any first visit.
+     Same fix as the home page: rebind FACULTY and repaint. */
+  /* No refresh hook here yet either, for the same reason as on the home page:
+     rebinding FACULTY after load proved intermittent and I would rather leave
+     the known one-visit delay than ship a race. */
+
   /* ===================================================== ABOUT: THE WHEEL */
   /* Six panes on a shallow arc. The one at front is square to the reader;
      each step away from it adds a fixed rotation, a sideways offset and a
@@ -13019,6 +13026,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function filtered() {
       return !!(state.q || state.group !== "All" || state.route !== "all" || state.stream);
     }
+    window.__coApplyFaculty = apply;
     function apply() {
       var list = current();
       var cut = !filtered() && !expanded && list.length > LIMIT;
@@ -13291,6 +13299,15 @@ document.addEventListener("DOMContentLoaded", function () {
         ["Course", course.length + (course.length === 1 ? " free lecture · " : " free lectures · ") +
                    courseLength(t) + " · more in the paid course"]
       ];
+      /* Which batch they are taking at the moment. Added rather than always
+         present: a teacher between batches has nothing true to say here, and
+         an empty row reads as a gap in the record rather than as an answer.
+         It sits above Course because it is the thing a parent is actually
+         asking when they open this. */
+      if (t.teachingNow) {
+        rows.splice(3, 0, ["Now teaching",
+          t.teachingNow + (t.teachingNote ? " · " + t.teachingNote : "")]);
+      }
       if (d.code) rows.push(["Syllabus", d.code]);
 
       return '<button class="fpop__x" type="button" data-close aria-label="Close">' +

@@ -14798,6 +14798,11 @@ document.addEventListener("DOMContentLoaded", function () {
     function filtered() {
       return !!(state.q || state.group !== "All" || state.route !== "all" || state.stream);
     }
+    /* Exposed so the refresh below can repaint the grid after live rows
+       arrive. It lives inside the finder's closure, which is the right place
+       for it — but that also made it unreachable from outside, and a roster
+       that cannot be repainted is a roster stuck on whatever it first drew. */
+    window.__coApplyFaculty = apply;
     function apply() {
       var list = current();
       var cut = !filtered() && !expanded && list.length > LIMIT;
@@ -15070,6 +15075,15 @@ document.addEventListener("DOMContentLoaded", function () {
         ["Course", course.length + (course.length === 1 ? " free lecture · " : " free lectures · ") +
                    courseLength(t) + " · more in the paid course"]
       ];
+      /* Which batch they are taking at the moment. Added rather than always
+         present: a teacher between batches has nothing true to say here, and
+         an empty row reads as a gap in the record rather than as an answer.
+         It sits above Course because it is the thing a parent is actually
+         asking when they open this. */
+      if (t.teachingNow) {
+        rows.splice(3, 0, ["Now teaching",
+          t.teachingNow + (t.teachingNote ? " · " + t.teachingNote : "")]);
+      }
       if (d.code) rows.push(["Syllabus", d.code]);
 
       return '<button class="fpop__x" type="button" data-close aria-label="Close">' +
@@ -15317,6 +15331,15 @@ document.addEventListener("DOMContentLoaded", function () {
         if (typeof initTrio === "function") initTrio();
       }
     } catch (e) { if (window.console) console.warn("[co] refresh: streams", e); }
+
+    /* The roster is deliberately NOT rebound here yet. FACULTY is chosen once
+       when this script parses, so on a first visit — no cache — the page draws
+       the baked list and a teacher added in the control room only appears on
+       the visitor's second visit. Rebinding it from here worked about two runs
+       in three: something reassigns FACULTY back to the baked array afterwards
+       and I have not yet found what. A fix that works most of the time is
+       worse than the known behaviour, because it turns a predictable one-visit
+       delay into an intermittent one nobody can reproduce. */
   };
 
 
