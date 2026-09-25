@@ -86,7 +86,15 @@
         distCount: (t.distinction_count === 0 || t.distinction_count)
                      ? t.distinction_count : null,
         photo: t.photo_url || "", specs: t.specs || [],
-        note: t.contact_note || ""
+        note: t.contact_note || "",
+        /* Which batch they are taking right now, as opposed to `group`, which
+           is the subject family they belong to and does not change. This is
+           the line that dates fastest on the whole page, which is exactly why
+           it has to come from the control room rather than from the markup.
+           Empty is normal and prints nothing — better silence than a stale
+           "O Level 2025, Morning" left up all year. */
+        teachingNow: t.teaching_now || "",
+        teachingNote: t.teaching_note || ""
       };
       /* A teacher not offering a lesson gets no demo at all, rather than an
          empty one — the card then stops advertising something that is not
