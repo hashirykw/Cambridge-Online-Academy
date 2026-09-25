@@ -307,6 +307,37 @@
     });
   }
 
+  /* Hand the fresh rows back to the page.
+  
+     This used to be a bare `if (window.CO_REFRESH)`, which lost a race it did
+     not look like it was in. This file is loaded in the head and starts
+     fetching immediately; the page defines its data variables about a third of
+     the way down and CO_REFRESH near the very bottom. When the fetch landed
+     between those two points — which on a fast connection it often does —
+     CO_REFRESH did not exist yet, the call was skipped, and the page kept the
+     baked copy for the rest of the visit. Nothing errored. It simply looked
+     like the control room had no effect, intermittently, which is the hardest
+     kind of fault to be told about.
+
+     So: call it if it is there, and otherwise wait for the page to finish
+     parsing and call it then. */
+  function handBack(data) {
+    function go() {
+      if (typeof window.CO_REFRESH !== "function") return false;
+      try { window.CO_REFRESH(data); }
+      catch (e) { log("refresh failed", e); }
+      return true;
+    }
+    if (go()) return;
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", go, { once: true });
+    } else {
+      /* Parsed, but the hook is still not there — it is defined in a later
+         script than the one that finished. One frame is enough. */
+      setTimeout(go, 0);
+    }
+  }
+
   /* Only refetch when the cache has gone stale, so a visitor clicking through
      five pages does not pull the whole catalogue five times. */
   var fresh = cached && (Date.now() - cached.at) < CONFIG.cacheMinutes * 60000;
@@ -320,10 +351,7 @@
     window.CO_DATA = data;
     writeCache(data);
     log("loaded", data.FACULTY.length, "teachers", changed ? "(changed)" : "(same)");
-    if (changed && window.CO_REFRESH) {
-      /* The page is already drawn by now, so hand it back to itself. */
-      try { window.CO_REFRESH(data); } catch (e) { console.warn("[CO] refresh failed", e); }
-    }
+    if (changed) handBack(data);
     return data;
   }));
 

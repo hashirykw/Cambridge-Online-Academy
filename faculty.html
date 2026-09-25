@@ -11748,9 +11748,18 @@ function fmtTime(s){
   /* This page had no refresh hook at all, so config.js updated CO_DATA and the
      roster kept whatever it drew on load — the baked list, on any first visit.
      Same fix as the home page: rebind FACULTY and repaint. */
-  /* No refresh hook here yet either, for the same reason as on the home page:
-     rebinding FACULTY after load proved intermittent and I would rather leave
-     the known one-visit delay than ship a race. */
+  /* This page had no refresh hook at all, so config.js updated CO_DATA and the
+     roster kept whatever it drew on load — the baked list, on any first visit. */
+  window.CO_REFRESH = function () {
+    try {
+      var live = window.CO_DATA && window.CO_DATA.FACULTY;
+      if (live && live.length) {
+        FACULTY = live;
+        if (typeof window.__coApplyFaculty === "function") window.__coApplyFaculty();
+        if (document.getElementById("stars")) renderFaculty("#stars", honourRoll());
+      }
+    } catch (e) { if (window.console) console.warn("[co] refresh: faculty", e); }
+  };
 
   /* ===================================================== ABOUT: THE WHEEL */
   /* Six panes on a shallow arc. The one at front is square to the reader;

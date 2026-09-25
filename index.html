@@ -15332,14 +15332,23 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     } catch (e) { if (window.console) console.warn("[co] refresh: streams", e); }
 
-    /* The roster is deliberately NOT rebound here yet. FACULTY is chosen once
-       when this script parses, so on a first visit — no cache — the page draws
-       the baked list and a teacher added in the control room only appears on
-       the visitor's second visit. Rebinding it from here worked about two runs
-       in three: something reassigns FACULTY back to the baked array afterwards
-       and I have not yet found what. A fix that works most of the time is
-       worse than the known behaviour, because it turns a predictable one-visit
-       delay into an intermittent one nobody can reproduce. */
+    /* The roster. FACULTY is chosen once when this script parses, so on a
+       first visit — no cache — the page draws the baked list; this is what
+       swaps in the live one.
+
+       It was intermittent until config.js stopped losing a race: that file
+       fetches from the head, and if the rows landed after FACULTY was set but
+       before this function existed, the handback was skipped entirely and the
+       baked copy stood for the whole visit. config.js now waits for the hook
+       rather than testing for it once. */
+    try {
+      var live = window.CO_DATA && window.CO_DATA.FACULTY;
+      if (live && live.length) {
+        FACULTY = live;
+        if (document.getElementById("stars")) renderFaculty("#stars", honourRoll());
+        if (typeof window.__coApplyFaculty === "function") window.__coApplyFaculty();
+      }
+    } catch (e) { if (window.console) console.warn("[co] refresh: faculty", e); }
   };
 
 
