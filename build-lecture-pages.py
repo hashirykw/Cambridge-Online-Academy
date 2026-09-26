@@ -26,25 +26,74 @@ for f in ("index.html", "_lecture.tpl"):
 PAGE = open(os.path.join(OUT, "index.html"), encoding="utf-8", errors="surrogateescape").read()
 TPL  = open(os.path.join(OUT, "_lecture.tpl"), encoding="utf-8", errors="surrogateescape").read()
 
+# The template opens with a note to whoever edits it. That note is for this
+# repository, not for a reader or a crawler, and it was being copied verbatim
+# into the top of all eighteen published pages — above the doctype.
+TPL = re.sub(r'^\s*<!--.*?-->\s*', '', TPL, count=1, flags=re.S)
+
 def esc(x): return html.escape(x or "", quote=True)
 def _un(x):
     if not isinstance(x, str): return x
     return re.sub(r'\\u([0-9a-fA-F]{4})', lambda m: chr(int(m.group(1), 16)), x).replace('\\"', '"')
 
-# ---- the roster, read from index.html so there is one source of truth ----
-_i = PAGE.find("const FACULTY_BAKED")
-_body = PAGE[_i:PAGE.find("\n];", _i)]
-F = []
-for blk in re.split(r'\n  \{ id:', _body)[1:]:
-    blk = "id:" + blk
-    g = lambda k: _un((re.search(k + r':\s*"((?:[^"\\]|\\.)*)"', blk) or [None, ""])[1])
-    rec = dict(id=g("id"), name=g("name"), subject=g("subject"), tag=g("tag"))
-    dm = re.search(r'demo:\{([^}]*)\}', blk)
-    rec["demo"] = {"title": (re.search(r'title:"([^"]*)"', dm.group(1)) or [None, ""])[1],
-                   "mins":  (re.search(r'mins:(\d+)',     dm.group(1)) or [None, ""])[1],
-                   "code":  (re.search(r'code:"([^"]*)"',  dm.group(1)) or [None, ""])[1]} if dm else None
-    F.append(rec)
-if not F: sys.exit("parsed 0 teachers")
+# ---- the roster ------------------------------------------------------------
+# Supabase first, the baked array only if that fails. This has to match
+# build-faculty-pages.py exactly: if the two read different sources, a teacher
+# gets a profile page and no lesson page, or the reverse, and nothing says so.
+
+def _baked_roster():
+    i = PAGE.find("const FACULTY_BAKED")
+    if i < 0: return []
+    body = PAGE[i:PAGE.find("\n];", i)]
+    out = []
+    for blk in re.split(r'\n  \{ id:', body)[1:]:
+        blk = "id:" + blk
+        g = lambda k: _un((re.search(k + r':\s*"((?:[^"\\]|\\.)*)"', blk) or [None, ""])[1])
+        rec = dict(id=g("id"), name=g("name"), subject=g("subject"), tag=g("tag"))
+        dm = re.search(r'demo:\{([^}]*)\}', blk)
+        rec["demo"] = {"title": (re.search(r'title:"([^"]*)"', dm.group(1)) or [None, ""])[1],
+                       "mins":  (re.search(r'mins:(\d+)',     dm.group(1)) or [None, ""])[1],
+                       "code":  (re.search(r'code:"([^"]*)"',  dm.group(1)) or [None, ""])[1]} if dm else None
+        out.append(rec)
+    return out
+
+
+def _live_roster():
+    cfg = os.path.join(OUT, "config.js")
+    if not os.path.exists(cfg): return []
+    src = open(cfg, encoding="utf-8", errors="surrogateescape").read()
+    u = re.search(r'url:\s*"([^"]+)"', src)
+    k = re.search(r'anonKey:\s*"([^"]+)"', src)
+    if not u or not k: return []
+    import urllib.request
+    q = u.group(1).rstrip("/") + "/rest/v1/faculty?select=*&active=eq.true&order=sort,name"
+    req = urllib.request.Request(q, headers={"apikey": k.group(1),
+                                             "Authorization": "Bearer " + k.group(1)})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        rows = json.loads(r.read().decode("utf-8"))
+    out = []
+    for t in rows:
+        if not (t.get("slug") and t.get("name")): continue
+        rec = dict(id=t["slug"], name=t["name"],
+                   subject=t.get("subject") or "", tag=t.get("tag") or "")
+        rec["demo"] = ({"title": t.get("demo_title") or "",
+                        "mins": str(t.get("demo_mins") or ""),
+                        "code": t.get("demo_code") or ""}
+                       if t.get("demo_enabled") else None)
+        out.append(rec)
+    return out
+
+
+try:
+    F = _live_roster()
+    SOURCE = "Supabase"
+except Exception as e:
+    print("  ! could not reach Supabase (%s) — falling back to FACULTY_BAKED" % e)
+    F, SOURCE = [], "fallback"
+if not F:
+    F, SOURCE = _baked_roster(), "FACULTY_BAKED (fallback)"
+if not F: sys.exit("no teachers from either source — refusing to publish")
+print("  roster: %d, from %s" % (len(F), SOURCE))
 
 written = 0
 for t in F:

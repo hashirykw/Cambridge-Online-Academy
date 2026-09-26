@@ -10,13 +10,27 @@ Everything it needs is read out of index.html — the teacher records, the
 subject accent colours, the header and the footer — so nothing here can drift
 from the live site, and there is no second copy of the data to keep in step.
 
+WHERE THE TEACHERS COME FROM
+
+Supabase, not this repo. The control room is the record; index.html's
+FACULTY_BAKED is only the first-paint fallback and is used here only if the
+fetch fails, so a bad network on a deploy can never publish an empty faculty.
+
+That was the whole problem this fixes. The site listed teachers live from the
+database while these pages were generated from the baked array, so adding a
+teacher in the panel gave them a listing and nothing else — no page, no schema,
+no sharing card, no sitemap line — and removing one left their page indexed on
+the domain with nothing linking to it.
+
 TO ADD A TEACHER
-  1. Add the record to FACULTY_BAKED in index.html (copy an existing one).
-  2. Drop the portrait in as <id>.webp, 1000x625, same plinth as the others.
-  3. Run this script.
-  4. Upload the changed files. Adding one teacher changes the sibling cards on
-     everyone else in the same group, so re-upload all the teacher pages, not
-     just the new one.
+  1. Add them in the control room.
+  2. Upload their portrait as <slug>.webp, 1000x625, same plinth as the others.
+  3. Press Publish. Vercel runs this script and the pages appear.
+
+TO REMOVE ONE
+  Switch them off, or delete them, in the control room, then press Publish.
+  Their page is replaced by a stub that tells search engines it has gone and
+  sends a reader to the faculty list.
 """
 import json, os, re, html, sys
 
@@ -35,29 +49,100 @@ def _unescape_js(x):
     return x.replace('\\"', '"').replace("\\'", "'")
 
 # ---- the faculty records --------------------------------------------------
-_i = PAGE.find("const FACULTY_BAKED")
-if _i < 0: sys.exit("FACULTY_BAKED not found in index.html")
-_body = PAGE[_i:PAGE.find("\n];", _i)]
+# Read from Supabase, with the baked array as the fallback. The credentials
+# come out of config.js rather than being repeated here: one copy, and it is
+# the same one the website itself uses, so the two cannot drift.
 
-F = []
-for blk in re.split(r'\n  \{ id:', _body)[1:]:
-    blk = "id:" + blk
-    g = lambda k: _unescape_js((re.search(k + r':\s*"((?:[^"\\]|\\.)*)"', blk) or [None, ""])[1])
-    arr = lambda k: [_unescape_js(v) for v in re.findall(
-        r'"((?:[^"\\]|\\.)*)"', (re.search(k + r':\s*\[(.*?)\]', blk, re.S) or [None, ""])[1])]
-    rec = dict(id=g("id"), name=g("name"), subject=g("subject"), group=g("group"),
-               tag=g("tag"), bio=g("bio"), levels=arr("levels"),
-               distinctions=arr("distinctions"), star=bool(re.search(r'star:\s*true', blk)),
-               nophoto=bool(re.search(r'nophoto:\s*true', blk)),
-               social=[u for u in re.findall(r'"(https://[^"]+)"',
-                        (re.search(r'social:\s*\[([^\]]*)\]', blk) or [None, ""])[1])])
-    dm = re.search(r'demo:\{([^}]*)\}', blk)
-    if dm:
-        rec["demo"] = {"title": (re.search(r'title:"([^"]*)"', dm.group(1)) or [None, ""])[1],
-                       "mins":  (re.search(r'mins:(\d+)',     dm.group(1)) or [None, ""])[1],
-                       "code":  (re.search(r'code:"([^"]*)"',  dm.group(1)) or [None, ""])[1]}
-    F.append(rec)
-if not F: sys.exit("parsed 0 teachers — has FACULTY_BAKED's shape changed?")
+def _baked():
+    i = PAGE.find("const FACULTY_BAKED")
+    if i < 0: return []
+    body = PAGE[i:PAGE.find("\n];", i)]
+    out = []
+    for blk in re.split(r'\n  \{ id:', body)[1:]:
+        blk = "id:" + blk
+        g = lambda k: _unescape_js((re.search(k + r':\s*"((?:[^"\\]|\\.)*)"', blk) or [None, ""])[1])
+        arr = lambda k: [_unescape_js(v) for v in re.findall(
+            r'"((?:[^"\\]|\\.)*)"', (re.search(k + r':\s*\[(.*?)\]', blk, re.S) or [None, ""])[1])]
+        rec = dict(id=g("id"), name=g("name"), subject=g("subject"), group=g("group"),
+                   tag=g("tag"), bio=g("bio"), levels=arr("levels"),
+                   distinctions=arr("distinctions"), star=bool(re.search(r'star:\s*true', blk)),
+                   nophoto=bool(re.search(r'nophoto:\s*true', blk)),
+                   social=[u for u in re.findall(r'"(https://[^"]+)"',
+                            (re.search(r'social:\s*\[([^\]]*)\]', blk) or [None, ""])[1])])
+        dm = re.search(r'demo:\{([^}]*)\}', blk)
+        if dm:
+            rec["demo"] = {"title": (re.search(r'title:"([^"]*)"', dm.group(1)) or [None, ""])[1],
+                           "mins":  (re.search(r'mins:(\d+)',     dm.group(1)) or [None, ""])[1],
+                           "code":  (re.search(r'code:"([^"]*)"',  dm.group(1)) or [None, ""])[1]}
+        out.append(rec)
+    return out
+
+
+def _creds():
+    cfg = os.path.join(OUT, "config.js")
+    if not os.path.exists(cfg): return None, None
+    src = open(cfg, encoding="utf-8", errors="surrogateescape").read()
+    u = re.search(r'url:\s*"([^"]+)"', src)
+    k = re.search(r'anonKey:\s*"([^"]+)"', src)
+    return (u.group(1) if u else None), (k.group(1) if k else None)
+
+
+def _live():
+    """Every teacher the control room says is live, in the site's own order."""
+    url, key = _creds()
+    if not url or not key: return []
+    import urllib.request
+    q = (url.rstrip("/") + "/rest/v1/faculty"
+         "?select=*&active=eq.true&order=sort,name")
+    req = urllib.request.Request(q, headers={"apikey": key,
+                                             "Authorization": "Bearer " + key})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        rows = json.loads(r.read().decode("utf-8"))
+
+    out = []
+    for t in rows:
+        rec = dict(
+            id=t.get("slug") or "", name=t.get("name") or "",
+            subject=t.get("subject") or "", group=t.get("group_name") or "",
+            tag=t.get("tag") or "", bio=t.get("bio") or "",
+            levels=t.get("levels") or [], distinctions=t.get("distinctions") or [],
+            star=bool(t.get("star")),
+            # No portrait uploaded yet: the page draws the plinth rather than a
+            # broken image, which is what `nophoto` has always meant here.
+            nophoto=not (t.get("photo_url") or "").strip(),
+            social=t.get("social") or [],
+            # The search-listing overrides. Empty is normal and means "work it
+            # out from the name and subject", which is what the page already did.
+            seo_title=t.get("seo_title") or "",
+            seo_description=t.get("seo_description") or "",
+            og_image=t.get("og_image") or "",
+            noindex=bool(t.get("noindex")),
+            teaching_now=t.get("teaching_now") or "",
+        )
+        if t.get("demo_enabled"):
+            rec["demo"] = {"title": t.get("demo_title") or "",
+                           "mins": str(t.get("demo_mins") or ""),
+                           "code": t.get("demo_code") or ""}
+        if rec["id"] and rec["name"]:
+            out.append(rec)
+    return out
+
+
+try:
+    F = _live()
+    SOURCE = "Supabase"
+except Exception as e:
+    print("  ! could not reach Supabase (%s) — falling back to FACULTY_BAKED" % e)
+    F, SOURCE = [], "fallback"
+
+if not F:
+    F = _baked()
+    SOURCE = "FACULTY_BAKED (fallback)"
+
+if not F:
+    sys.exit("no teachers from either source — refusing to publish an empty faculty")
+
+print("  teachers: %d, from %s" % (len(F), SOURCE))
 
 # ---- the subject accents the faculty grid uses ----------------------------
 _j = PAGE.find("const SUBJECTS_BAKED")
@@ -95,14 +180,6 @@ def glyph(subject):
     return GLYPHS.get(key, GLYPH_FALLBACK)
 
 # ---- header and footer, lifted from the live page -------------------------
-HEAD = re.search(r'(<header.*?</header>)', PAGE, re.S).group(1)
-FOOT = re.search(r'(<footer.*?</footer>)', PAGE, re.S).group(1)
-HEAD = HEAD.replace('src="mark-128.webp"', 'src="/mark-128.webp"')
-HEAD = HEAD.replace('href="#faculty" class="on"', 'href="/faculty" class="on"')
-HEAD = HEAD.replace('href="#campuses"', 'href="/#campuses"')
-HEAD = re.sub(r'href="#([a-z]+)"', r'href="/#\1"', HEAD)
-FOOT = re.sub(r'(src|href)="(?!https?:|/|#|mailto:|tel:)', r'\1="/', FOOT)
-
 # The floating shell — Enrol, the light/dark dock, WhatsApp. It sits between
 # the footer and the dialogs on index.html; every page carries it and these
 # pages were the only ones that did not.
@@ -146,13 +223,43 @@ def portrait_svg(acc, label=True):
       '<circle cx="200" cy="98" r="35"/><path d="M141 202c0-33 26-52 59-52s59 19 59 52"/></g>'
       + cap + '</svg>')
 
-HEAD = open('/home/claude/_header.html', encoding='utf-8').read()
-FOOT = open('/home/claude/_footer.html', encoding='utf-8').read()
-# the teacher pages live one level down, so root-relative the asset paths
-HEAD = HEAD.replace('src="mark-128.webp"', 'src="/mark-128.webp"')
-HEAD = HEAD.replace('href="#faculty" class="on"', 'href="/faculty" class="on"')
-HEAD = HEAD.replace('href="#campuses"', 'href="/#campuses"')
-FOOT = re.sub(r'(src|href)="(?!https?:|/|#|mailto:|tel:)', r'\1="/', FOOT)
+# The header and footer are cut out of index.html, the same way every other
+# shared thing in this script is.
+#
+# They used to be read from /home/claude/_header.html and _footer.html —
+# absolute paths, on a machine that is not this one, for files that are not in
+# the repository. The script could not have run from a clean checkout, which
+# means it only ever worked in whatever scratch directory it was written in.
+# Building on Vercel would have failed on this line.
+def _cut(open_tag, close_tag, what):
+    i = PAGE.find(open_tag)
+    j = PAGE.find(close_tag, i)
+    if i < 0 or j < 0:
+        sys.exit("could not find the %s in index.html — has its markup changed?" % what)
+    return PAGE[i:j + len(close_tag)]
+
+HEAD = _cut('<header class="hdr">', '</header>', "site header")
+FOOT = _cut('<footer class="foot wrap">', '</footer>', "site footer")
+# The header is cut straight out of the home page, where every nav link is an
+# in-page anchor and Home is the current section. On a teacher page neither is
+# true: "#campuses" would scroll this page looking for a section that is not
+# here, and Home would be marked as where the reader is.
+HEAD = HEAD.replace(' class="on"', '')                      # nothing is current yet
+# The home page links to the faculty page by path already, so match both the
+# anchor it used to be and the path it is now — otherwise the teacher pages
+# quietly lose the "you are here" mark on the one item that should carry it.
+HEAD = HEAD.replace('href="#faculty"', 'href="/faculty"')
+HEAD = HEAD.replace('href="/faculty"', 'href="/faculty" class="on"', 1)
+# Anchors become links back to the home page; assets become root-relative.
+# Left alone: absolute URLs, already-root paths, mail and phone.
+HEAD = re.sub(r'(src|href)="(?!https?:|//|/|mailto:|tel:)', r'\1="/', HEAD)
+HEAD = HEAD.replace('href="/#faculty"', 'href="/faculty"')
+# Same treatment for the footer, and for the same reason. The old rule left
+# bare "#" anchors alone, so a teacher page's footer offered links to
+# #streams and #reviews — sections that live on the home page and not on this
+# one, so those links did nothing at all.
+FOOT = FOOT.replace('href="#faculty"', 'href="/faculty"')
+FOOT = re.sub(r'(src|href)="(?!https?:|//|/|mailto:|tel:)', r'\1="/', FOOT)
 
 # The floating shell — Enrol, the light/dark dock, WhatsApp. It sits between
 # the footer and the dialogs on index.html; every page carries it and these
@@ -631,6 +738,61 @@ for t in F:
     sibs = [s for s in F if s['group'] == t['group'] and s['id'] != t['id']]
     open(f"{OUT}/teacher-{t['id']}.html", 'w', encoding='utf-8').write(page(t, sibs))
 print("wrote", len(F), "teacher pages")
+
+# ---- teachers who have gone -----------------------------------------------
+# Writing the current teachers was only ever half the job. A teacher removed
+# in the control room vanished from the listing while their page stayed on the
+# domain: indexed, linked to from outside, and now orphaned. Left alone it
+# either keeps ranking for a teacher who no longer works here, or turns into a
+# 404 the day somebody deletes the file by hand.
+#
+# So every teacher-*.html that no longer has a record is replaced by a stub
+# that says so plainly: noindex so it drops out of the results, a canonical to
+# the faculty list so any accumulated authority points somewhere useful, and a
+# redirect for anyone who follows an old link.
+#
+# A 301 would be better and is deliberately not used. Vercel reads vercel.json
+# before the build runs, so redirects generated here would never be applied,
+# and a redirect rule that silently does nothing is worse than a stub that
+# visibly works. If the list ever grows long enough to matter, the right fix
+# is redirect entries in vercel.json rather than a cleverer build.
+import glob
+_live_ids = {t["id"] for t in F}
+_gone = []
+for _f in glob.glob(os.path.join(OUT, "teacher-*.html")):
+    _slug = os.path.basename(_f)[len("teacher-"):-len(".html")]
+    if _slug in _live_ids:
+        continue
+    open(_f, "w", encoding="utf-8").write(
+        '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+        '<meta charset="utf-8">\n'
+        '<meta name="robots" content="noindex,follow">\n'
+        f'<link rel="canonical" href="{SITE}/faculty">\n'
+        f'<meta http-equiv="refresh" content="0; url={SITE}/faculty">\n'
+        '<title>This teacher is no longer listed — Cambridge Online</title>\n'
+        '</head>\n<body>\n'
+        '<p>This teacher is no longer listed. '
+        f'<a href="{SITE}/faculty">See the current faculty</a>.</p>\n'
+        '</body>\n</html>\n')
+    _gone.append(_slug)
+
+    # The lecture page goes the same way, or it outlives the teacher it belongs to.
+    _lec = os.path.join(OUT, "lecture-%s.html" % _slug)
+    if os.path.exists(_lec):
+        open(_lec, "w", encoding="utf-8").write(
+            '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+            '<meta charset="utf-8">\n'
+            '<meta name="robots" content="noindex,follow">\n'
+            f'<link rel="canonical" href="{SITE}/faculty">\n'
+            f'<meta http-equiv="refresh" content="0; url={SITE}/faculty">\n'
+            '<title>This lesson is no longer listed — Cambridge Online</title>\n'
+            '</head>\n<body>\n'
+            '<p>This lesson is no longer listed. '
+            f'<a href="{SITE}/faculty">See the current faculty</a>.</p>\n'
+            '</body>\n</html>\n')
+
+if _gone:
+    print("  retired: " + ", ".join(sorted(_gone)))
 
 # ---- sitemap --------------------------------------------------------------
 # Both page families, with the hints the hand-written version carried. An
