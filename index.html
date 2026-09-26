@@ -13001,6 +13001,25 @@ function fmtTime(s){
     var box = host.querySelector(".nx__box");
     if (!box) return;
 
+    /* A switched-off notice is a paused notice.
+
+       This used to treat "no row" and "row switched off" as the same thing —
+       both fell back to the dates worked out below — so switching the notice
+       off in the control room changed nothing a visitor could see. That is
+       not what an off switch should do, and pausing a notice is an ordinary
+       thing to want when there is no deadline worth announcing.
+
+       Deleting the row still restores the fallback, which is the behaviour
+       worth keeping: a site that has never been told about this notice should
+       still show one rather than go quiet. */
+    var ribbonRow = window.CO_DATA && window.CO_DATA.POPUPS
+                    && window.CO_DATA.POPUPS.admissions_ribbon;
+    if (ribbonRow && !ribbonRow.live) {
+      host.hidden = true;
+      host.setAttribute("aria-hidden", "true");
+      return;
+    }
+
     /* Cambridge runs three series a year; only two of them matter to this
        audience. Entry closes roughly four months before the papers. */
     function series() {
