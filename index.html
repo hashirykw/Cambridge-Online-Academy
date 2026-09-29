@@ -7445,6 +7445,118 @@ html.has-pr body{padding-top:var(--pr-h,0px)}
   color:var(--pr-acc);
 }
 
+/* ════════════════════════ THE OPENING STORY ════════════════════════════════
+   A portrait film that plays as the site opens, dismissible from the corner,
+   and left running if nobody dismisses it.
+
+   The thing that decides whether this works is not the player, it is the
+   weight. The original file is 77 MB, 1080x1920, sixty-five seconds, and its
+   moov atom sits at the END — so a browser has to finish downloading all
+   77 MB before it can show a single frame. As an opening popup that is not
+   slow, it is broken: most visitors would leave before anything appeared.
+
+   What was done about it:
+
+     · Re-encoded with the moov atom at the front, so playback starts after the
+       first few hundred kilobytes instead of after the whole file. This is the
+       single change that matters most, and it costs nothing in quality.
+     · Two renditions. 1080x1920 at 24 MB where there is room for it, and
+       720x1280 at 7.9 MB for phones and slow connections. The choice is made
+       from the screen and, where the browser will say, from the connection.
+     · A 24 KB poster frame, so the panel is filled the instant it opens rather
+       than showing black while the first chunk arrives.
+     · Nothing is fetched until the popup is actually about to open, so a
+       visitor who has already seen it once never pays for it again.
+
+   Muted to begin with, because every browser blocks audio that starts without
+   a gesture — an unmuted autoplay would simply be refused and the film would
+   sit there silent with no way to fix it. The sound button is the first thing
+   under the film, and one tap turns it on.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.sto{
+  position:fixed;inset:0;z-index:9500;display:none;
+  align-items:center;justify-content:center;
+  padding:calc(14px + env(safe-area-inset-top,0px)) 14px
+          calc(14px + env(safe-area-inset-bottom,0px));
+}
+.sto.on{display:flex}
+/* One interruption at a time. On a phone the cookie bar lands exactly on top
+   of the film's sound button and enrol link, so the visitor is asked about
+   cookies while being unable to reach either control. It waits its turn. */
+html.sto-open .ck{display:none !important}
+html.sto-open .pr{display:none !important}
+/* The floating enrol pill and WhatsApp button sit in the same bottom corner
+   as the film's own controls, and on a phone they land directly on top of
+   them. The film already offers both, so there is nothing lost by standing
+   them down until it closes. */
+html.sto-open .dock,
+html.sto-open .fwa,
+html.sto-open .fenrol,
+html.sto-open .wapop{display:none !important}
+.sto__veil{
+  position:absolute;inset:0;background:rgba(6,2,2,.88);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  animation:stoFade .45s var(--ease) both;
+}
+@keyframes stoFade{from{opacity:0}to{opacity:1}}
+
+/* The film is 9:16. Height is the limit on a laptop and width on a phone, so
+   both are capped and the aspect ratio does the rest. */
+.sto__box{
+  position:relative;width:min(calc((100dvh - 132px) * 0.5625), calc(100vw - 28px), 420px);
+  border-radius:var(--r);overflow:hidden;
+  background:var(--cine);border:1px solid rgba(201,152,47,.3);
+  box-shadow:0 40px 120px rgba(0,0,0,.6);
+  animation:stoRise .55s var(--out) both;
+}
+@keyframes stoRise{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.sto__box video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:var(--cine)}
+
+/* Corner dismiss. Deliberately large and always visible rather than appearing
+   on hover: a popup you cannot immediately see how to close is the kind
+   people leave the site over. */
+.sto__x{
+  position:absolute;top:10px;right:10px;z-index:4;
+  width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
+  cursor:pointer;background:rgba(6,2,2,.62);border:1px solid rgba(247,239,225,.28);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  transition:background .25s var(--ease),transform .25s var(--ease);
+}
+.sto__x:hover{background:rgba(6,2,2,.85);transform:scale(1.06)}
+.sto__x svg{width:14px;height:14px;fill:none;stroke:#F7EFE1;stroke-width:2;stroke-linecap:round}
+
+.sto__bar{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 13px;background:var(--panel-solid);border-top:1px solid var(--line);
+}
+.sto__snd{
+  display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  font-family:var(--sans);font-size:12.5px;font-weight:600;
+  padding:7px 14px;border-radius:999px;
+  background:var(--gold);border:1px solid var(--gold);color:#1B0A02;
+}
+.sto__snd.is-on{background:transparent;color:var(--text-2);border-color:var(--line-2)}
+.sto__snd svg{width:13px;height:13px;fill:currentColor}
+.sto__go{
+  margin-left:auto;font-family:var(--sans);font-size:12.5px;font-weight:600;
+  color:var(--gold-text);text-decoration:none;white-space:nowrap;
+  border-bottom:1px solid currentColor;padding-bottom:1px;
+}
+.sto__go:hover{opacity:.8}
+
+/* Time remaining, so a reader can see it is sixty seconds and not ten minutes. */
+.sto__line{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(247,239,225,.16)}
+.sto__line i{display:block;height:100%;width:0;background:var(--gold);transition:width .25s linear}
+
+@media (max-width:520px){
+  .sto__box{width:calc(100vw - 24px)}
+  .sto__go{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .sto__veil,.sto__box{animation:none}
+}
+
 /* ═══════════════════════════ THE COOKIE BAR ════════════════════════
    Sits at the bottom left rather than across the full width: the promo ribbon
    already owns the full-width bottom slot, and two stacked full-width bars is
@@ -8721,6 +8833,26 @@ body::after{
 <div id="prog"></div>
 
 <div class="base">
+<div class="sto" id="sto" role="dialog" aria-modal="true"
+     aria-label="A message from our students" hidden>
+  <div class="sto__veil" data-sto-close></div>
+  <div class="sto__box">
+    <button class="sto__x" type="button" data-sto-close aria-label="Close this video">
+      <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13"/></svg>
+    </button>
+    <video id="stoVid" playsinline muted preload="none"
+           poster="swk-story.webp" aria-label="Students on results day"></video>
+    <div class="sto__line"><i id="stoBar"></i></div>
+    <div class="sto__bar">
+      <button class="sto__snd" id="stoSnd" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4Z"/></svg>
+        <span>Sound on</span>
+      </button>
+      <a class="sto__go" href="#contact" data-sto-close>Enrol now</a>
+    </div>
+  </div>
+</div>
+
 <aside class="pr" id="pr" hidden aria-label="Current offer">
   <div class="pr__in">
     <span class="pr__k" id="prK"></span>
@@ -12995,6 +13127,140 @@ function fmtTime(s){
     el.classList.add("on");
   }
 
+  /* ═══════════════════════════ THE OPENING STORY ═════════════════════════
+     See the CSS block for why the file was re-encoded. This is the part that
+     decides when it is allowed to interrupt somebody.
+
+     Shown once. A film that reappears on every page view stops being a
+     welcome and becomes an obstacle, and the people it would annoy most are
+     the ones already deciding whether to enrol. Dismissing it, or letting it
+     play out, both count as seen.
+
+     It waits for the preloader rather than racing it: two full-screen things
+     animating over each other reads as a fault. */
+  function initStory() {
+    var KEY = "co-story-v1";
+    try { if (localStorage.getItem(KEY)) return; } catch (e) {}
+
+    var el = document.getElementById("sto");
+    if (!el) return;
+
+    var vid  = document.getElementById("stoVid");
+    var snd  = document.getElementById("stoSnd");
+    var bar  = document.getElementById("stoBar");
+    if (!vid) return;
+
+    /* Which rendition. A phone gets the 7.9 MB cut; anything larger gets the
+       24 MB one. If the browser will admit to being on a slow or metered
+       connection, that overrules the screen — a large tablet on 3G wants the
+       small file far more than a small laptop on fibre does. */
+    /* Screen size decides, not pixel density. An earlier version also sent
+       anything under 1.5x to the small file, which quietly meant every
+       ordinary desktop monitor — the exact machines with room for the good
+       one. */
+    var small = Math.min(innerWidth, innerHeight) < 700;
+    var conn  = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn && (conn.saveData || /^([23]g|slow-2g)$/.test(conn.effectiveType || ""))) {
+      small = true;
+    }
+    vid.src = small ? "swk-story-720.mp4" : "swk-story-1080.mp4";
+    /* preload is "none" in the markup so nothing is fetched for a visitor who
+       has already seen this. Now that we know it will open, start pulling. */
+    vid.preload = "auto";
+    try { vid.load(); } catch (e) {}
+
+    function seen() {
+      try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+    }
+
+    function shut() {
+      seen();
+      try { vid.pause(); } catch (e) {}
+      el.classList.remove("on");
+      document.documentElement.classList.remove("sto-open");
+      document.documentElement.style.overflow = "";
+      /* Drop the source so the download stops the moment it is dismissed —
+         otherwise a visitor who closes it after two seconds still pays for
+         the rest of the file in the background. */
+      setTimeout(function () {
+        try { vid.removeAttribute("src"); vid.load(); } catch (e) {}
+        el.hidden = true;
+      }, 260);
+    }
+
+    function open() {
+      el.hidden = false;
+      el.classList.add("on");
+      document.documentElement.classList.add("sto-open");
+      document.documentElement.style.overflow = "hidden";
+      vid.muted = true;            /* the only way autoplay is permitted */
+      function go() {
+        var p = vid.play();
+        if (p && p.catch) p.catch(function () { /* left paused; the poster stands */ });
+      }
+      /* If the first frames have not arrived yet, waiting for them beats
+         calling play() on an empty buffer and having it quietly do nothing. */
+      if (vid.readyState >= 2) go();
+      else vid.addEventListener("loadeddata", go, { once: true });
+    }
+
+    /* Sound as early as it is allowed.
+
+       Autoplay with audio is refused by every current browser, and the
+       refusal takes the whole play() call with it — so asking for sound up
+       front does not get a silent film, it gets a frozen one. What is allowed
+       is unmuting after the visitor has interacted with the page at all.
+
+       So the film starts muted and listens for the first touch, click or key
+       anywhere. That counts as the gesture, and the sound comes on without
+       anybody having to find a button. If they press the button first, this
+       stands down rather than fighting it. */
+    var grabbed = false;
+    function grabSound() {
+      if (grabbed) return;
+      grabbed = true;
+      if (!el.classList.contains("on")) return;
+      vid.muted = false;
+      if (snd) {
+        snd.classList.add("is-on");
+        snd.querySelector("span").textContent = "Sound off";
+      }
+      if (vid.paused) { var q = vid.play(); if (q && q.catch) q.catch(function () {}); }
+    }
+    ["pointerdown", "touchstart", "keydown"].forEach(function (ev) {
+      addEventListener(ev, grabSound, { once: true, passive: true, capture: true });
+    });
+
+    /* Sound. Starts muted because it has to; one press fixes it. */
+    if (snd) snd.onclick = function () {
+      grabbed = true;            /* they chose; stop the auto-unmute */
+      vid.muted = !vid.muted;
+      snd.classList.toggle("is-on", !vid.muted);
+      snd.querySelector("span").textContent = vid.muted ? "Sound on" : "Sound off";
+      if (vid.paused) { var q = vid.play(); if (q && q.catch) q.catch(function () {}); }
+    };
+
+    document.querySelectorAll("[data-sto-close]").forEach(function (b) {
+      b.addEventListener("click", shut);
+    });
+    addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && el.classList.contains("on")) shut();
+    });
+
+    /* Played to the end: it has done its job, so it closes itself. */
+    vid.addEventListener("ended", shut);
+
+    vid.addEventListener("timeupdate", function () {
+      if (bar && vid.duration) {
+        bar.style.width = ((vid.currentTime / vid.duration) * 100).toFixed(1) + "%";
+      }
+    });
+
+    /* Behind the preloader, and never before the page is interactive. */
+    var wait = document.getElementById("pre") ? 1400 : 600;
+    setTimeout(open, wait);
+  }
+
   function initNotice() {
     var host = document.getElementById("nx");
     if (!host) return;
@@ -14023,7 +14289,7 @@ function fmtTime(s){
   }
 
   function boot() {
-    [initTheme, initSound, initPreloader, initChrome, initSpy, initWheel, initDial, renderStreams, initTrio, initPromoRibbon, initPromoHero,
+    [initTheme, initSound, initPreloader, initChrome, initSpy, initWheel, initDial, renderStreams, initTrio, initPromoRibbon, initPromoHero, initStory,
      initCounters, initLiquid, initTouchHover, initPaneGlow, initDockYield,
      Scroller.enable].forEach(function (fn) {
       try { fn(); } catch (e) { if (window.console) console.warn("[co]", e); }
